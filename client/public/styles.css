@@ -42,6 +42,13 @@ header p {
     margin-bottom: 10px;
 }
 
+header .help-text {
+    color: #64dfdf;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    animation: pulse 3s infinite alternate;
+}
+
 .canvas-container {
     flex: 1;
     position: relative;
@@ -67,37 +74,7 @@ header p {
 }
 
 /* Overlay controls */
-.overlay-controls {
-    position: fixed;
-    bottom: 30px;
-    right: 20px;
-    z-index: 1000;
-}
-
-.control-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: rgba(20, 20, 35, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(94, 96, 206, 0.3);
-    backdrop-filter: blur(5px);
-    transition: all 0.3s ease;
-    opacity: 0.7;
-}
-
-.control-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(100, 223, 223, 0.5);
-    opacity: 1;
-}
-
-.control-icon {
-    font-size: 24px;
-}
+/* Controls have been simplified, no overlay button needed */
 
 /* Parameter display integrated at bottom */
 .parameter-overlay {
@@ -110,17 +87,20 @@ header p {
     justify-content: center;
     gap: 15px;
     z-index: 900;
-    background-color: rgba(20, 20, 35, 0.5);
-    padding: 8px 15px;
+    background-color: rgba(20, 20, 35, 0.6);
+    padding: 12px 20px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(100, 223, 223, 0.3);
-    transition: opacity 0.3s ease;
-    opacity: 0.7;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(100, 223, 223, 0.4);
+    transition: all 0.3s ease;
+    opacity: 0.9;
+    animation: glow-subtle 3s infinite alternate;
 }
 
 .parameter-overlay:hover {
     opacity: 1;
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(100, 223, 223, 0.5);
 }
 
 .status-overlay {
@@ -149,19 +129,27 @@ header p {
 .param-item {
     display: flex;
     align-items: center;
-    padding: 5px 10px;
+    padding: 8px 14px;
     border-radius: 15px;
-    background-color: rgba(20, 20, 35, 0.5);
+    background-color: rgba(20, 20, 35, 0.6);
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
-    box-shadow: 0 0 10px rgba(94, 96, 206, 0.15);
+    box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
     min-width: 120px;
+    margin: 0 3px;
+    cursor: pointer;
+}
+
+.param-item:hover {
+    background-color: rgba(30, 30, 50, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(100, 223, 223, 0.3);
 }
 
 .param-item.highlight {
-    background-color: rgba(50, 50, 80, 0.6);
-    box-shadow: 0 0 15px rgba(100, 223, 223, 0.3);
-    animation: pulse-highlight 0.5s ease-out;
+    background-color: rgba(50, 50, 80, 0.7);
+    box-shadow: 0 0 20px rgba(100, 223, 223, 0.5);
+    animation: pulse-highlight 0.7s ease-out;
 }
 
 .key-hint {
@@ -297,61 +285,7 @@ header p {
     background-color: rgba(100, 223, 223, 0.3);
 }
 
-.keyboard-help {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background-color: rgba(20, 20, 35, 0.7);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 12px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 13px;
-    z-index: 999;
-    max-width: 270px;
-    box-shadow: 0 0 15px rgba(100, 223, 223, 0.3);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(100, 223, 223, 0.2);
-    transition: all 0.3s ease;
-    animation: fadeIn 0.3s ease-out;
-}
-
-.keyboard-help h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 16px;
-    text-align: center;
-    color: #64dfdf;
-    text-shadow: 0 0 10px rgba(100, 223, 223, 0.4);
-    border-bottom: 1px solid rgba(100, 223, 223, 0.2);
-    padding-bottom: 6px;
-}
-
-.keyboard-help ul {
-    margin: 0;
-    padding: 0 0 0 15px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px 10px;
-}
-
-.keyboard-help li {
-    margin-bottom: 5px;
-    line-height: 1.4;
-    font-size: 12px;
-}
-
-.keyboard-help strong {
-    color: #ff66c4;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 2px 5px;
-    border-radius: 4px;
-    margin-right: 4px;
-    font-size: 11px;
-    min-width: 20px;
-    display: inline-block;
-    text-align: center;
-}
+/* Keyboard help has been removed - controls are shown directly on screen */
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }

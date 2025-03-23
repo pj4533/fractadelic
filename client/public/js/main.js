@@ -368,12 +368,91 @@ document.addEventListener('DOMContentLoaded', () => {
         updateParameterDisplay('wave', controls.waveIntensity.toFixed(2));
         updateParameterDisplay('glow', controls.glowIntensity.toFixed(2));
         updateParameterDisplay('particles', controls.particleDensity.toFixed(2));
+        
+        // Add click handlers for parameters
+        setupParameterClickHandlers();
+    }
+    
+    // Setup click handlers for parameters
+    function setupParameterClickHandlers() {
+        // Get all parameter items
+        const paramItems = document.querySelectorAll('.param-item');
+        
+        paramItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const key = item.getAttribute('data-key');
+                
+                switch(key) {
+                    case 'p':
+                        // Cycle through palettes
+                        const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];
+                        const currentIndex = palettes.indexOf(controls.palette);
+                        const nextIndex = (currentIndex + 1) % palettes.length;
+                        updatePalette(palettes[nextIndex]);
+                        showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
+                        break;
+                        
+                    case '←/→':
+                        // Increase wave flow
+                        updateWaveIntensity(0.05);
+                        showKeyFeedback('→', 'Increase wave flow');
+                        break;
+                        
+                    case '↑/↓':
+                        // Increase glow intensity
+                        updateGlowIntensity(0.05);
+                        showKeyFeedback('↑', 'Increase glow intensity');
+                        break;
+                        
+                    case '+/-':
+                        // Increase particle density
+                        updateParticleDensity(0.05);
+                        showKeyFeedback('+', 'Increase particle density');
+                        break;
+                }
+            });
+            
+            // Add right-click handler for decreasing values
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Prevent context menu
+                
+                const key = item.getAttribute('data-key');
+                
+                switch(key) {
+                    case '←/→':
+                        // Decrease wave flow
+                        updateWaveIntensity(-0.05);
+                        showKeyFeedback('←', 'Decrease wave flow');
+                        break;
+                        
+                    case '↑/↓':
+                        // Decrease glow intensity
+                        updateGlowIntensity(-0.05);
+                        showKeyFeedback('↓', 'Decrease glow intensity');
+                        break;
+                        
+                    case '+/-':
+                        // Decrease particle density
+                        updateParticleDensity(-0.05);
+                        showKeyFeedback('-', 'Decrease particle density');
+                        break;
+                }
+            });
+        });
     }
     
     // Call initialization
     initializeDisplays();
     
-    // Add keyboard controls
+    // Add occasional automatic ripple effects to enhance visual interest
+    setInterval(() => {
+        // Randomly add ripples
+        if (Math.random() > 0.7) {
+            addRipple();
+        }
+    }, 4000);
+    
+    // Add keyboard controls - simplified to only essential parameters
     document.addEventListener('keydown', (e) => {
         // Ignore if user is typing in an input field
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -410,42 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showKeyFeedback('-', 'Decrease particle density');
                 break;
                 
-            // Seed points with different intensities
-            case ' ': // Space
-                addRandomSeed(0.6);
-                showKeyFeedback('Space', 'Add random seed point');
-                break;
-            case '1':
-                addRandomSeed(0.3);
-                showKeyFeedback('1', 'Add small seed point');
-                break;
-            case '2':
-                addRandomSeed(0.6);
-                showKeyFeedback('2', 'Add medium seed point');
-                break;
-            case '3':
-                addRandomSeed(0.9);
-                showKeyFeedback('3', 'Add large seed point');
-                break;
-                
-            // Visual effects
-            case 'r': // Ripple
-                addRipple();
-                showKeyFeedback('R', 'Add ripple effect');
-                break;
-            case 'c': // Circle pattern
-                addRipplePattern('circle');
-                showKeyFeedback('C', 'Add circle ripple pattern');
-                break;
-            case 'l': // Line pattern
-                addRipplePattern('line');
-                showKeyFeedback('L', 'Add line ripple pattern');
-                break;
-            case 'e': // Evolve
-                triggerSubtleEvolution();
-                showKeyFeedback('E', 'Subtle evolution');
-                break;
-                
             // Palette changes
             case 'p': // Next palette
                 const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];
@@ -455,7 +498,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
                 break;
                 
-            // No default case needed
+            // Add subtle ripple effects automatically on occasion to enhance visual interest
+            case ' ': // Space - just add a ripple for visual interest
+                addRipple();
+                showKeyFeedback('Space', 'Add ripple effect');
+                break;
         }
     });
     
@@ -482,41 +529,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 5000);
     
-    // Setup controls toggle
-    const controlToggle = document.getElementById('control-toggle');
-    const keyboardHelp = document.createElement('div');
-    keyboardHelp.className = 'keyboard-help';
-    keyboardHelp.innerHTML = `
-        <h3>Keyboard Controls</h3>
-        <ul>
-            <li><strong>←/→</strong> - Decrease/increase wave flow</li>
-            <li><strong>↑/↓</strong> - Increase/decrease glow intensity</li>
-            <li><strong>+/-</strong> - Increase/decrease particle density</li>
-            <li><strong>P</strong> - Change color palette</li>
-            <li><strong>Space</strong> - Add random seed point</li>
-            <li><strong>1/2/3</strong> - Add small/medium/large seed points</li>
-            <li><strong>R</strong> - Add ripple effect</li>
-            <li><strong>C</strong> - Add circle ripple pattern</li>
-            <li><strong>L</strong> - Add line ripple pattern</li>
-            <li><strong>E</strong> - Subtle evolution</li>
-        </ul>
-    `;
-    
-    // Add keyboard help as hidden initially
-    keyboardHelp.style.display = 'none';
-    document.body.appendChild(keyboardHelp);
-    
-    // Toggle keyboard help visibility
-    let helpVisible = false;
-    controlToggle.addEventListener('click', () => {
-        helpVisible = !helpVisible;
-        keyboardHelp.style.display = helpVisible ? 'block' : 'none';
-        
-        // Animate the control button
-        controlToggle.classList.add('active');
-        setTimeout(() => {
-            controlToggle.classList.remove('active');
-        }, 300);
-    });
+    // No keyboard help needed - controls are shown directly on screen
     
 });
