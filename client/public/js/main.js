@@ -24,35 +24,39 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Connect to the server
     socket.on('connect', () => {
-        console.log('Connected to server');
+        console.log(`Connected to server [id: ${socket.id}]`);
         serverStatusElement.textContent = 'Server status: Connected';
         serverStatusElement.className = 'server-status connected';
         
         // Get initial state
+        console.log('Sending getState request to server');
         socket.emit('getState');
     });
     
     // Disconnect handler
     socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+        console.log('Disconnected from server - reason:', socket.disconnected ? 'client disconnect' : 'server disconnect');
         serverStatusElement.textContent = 'Server status: Disconnected';
         serverStatusElement.className = 'server-status disconnected';
     });
     
     // Reconnection attempt
-    socket.on('reconnecting', () => {
+    socket.on('reconnecting', (attemptNumber) => {
+        console.log(`Attempting to reconnect to server (attempt ${attemptNumber})`);
         serverStatusElement.textContent = 'Server status: Reconnecting...';
         serverStatusElement.className = 'server-status';
     });
     
     // User count updates
     socket.on('userCount', (count) => {
+        console.log(`Received userCount update: ${count} users online`);
         activeUsers = count;
         activeUsersElement.textContent = `${activeUsers} user${activeUsers !== 1 ? 's' : ''} online`;
     });
     
     // Handle incoming state from server
     socket.on('state', (state) => {
+        console.log(`Received state update:`, state);
         // Update UI controls to match
         document.getElementById('roughness').value = state.roughness;
         document.getElementById('colorPalette').value = state.palette;
@@ -63,15 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
             palette: state.palette,
             seedPoints: state.seedPoints
         });
+        console.log(`Applied state update to fractal: roughness=${state.roughness}, palette=${state.palette}, seedPoints=${state.seedPoints.length}`);
     });
     
     // Handle incoming seed points from other users
     socket.on('newSeed', (seedPoint) => {
+        console.log(`Received new seed point from another user:`, seedPoint);
         fractal.addSeedPoint(seedPoint.x, seedPoint.y, seedPoint.value);
     });
     
     // Handle evolution updates from server
     socket.on('evolve', () => {
+        console.log('Received evolution trigger from server');
         fractal.evolve(0.01);
     });
     
@@ -85,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only send to server when done changing (for bandwidth efficiency)
     roughnessSlider.addEventListener('change', () => {
         const roughness = parseFloat(roughnessSlider.value);
+        console.log(`Sending roughness update to server: ${roughness}`);
         socket.emit('updateOption', { roughness });
     });
     
@@ -104,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Send update to server
+        console.log(`Sending palette update to server: ${palette}`);
         socket.emit('updateOption', { palette });
     });
     
@@ -138,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 100);
             
             // Send to server
+            console.log(`Sending new seed point to server: x=${x.toFixed(2)}, y=${y.toFixed(2)}, value=${value.toFixed(2)}`);
             socket.emit('addSeed', { x, y, value });
             
             // Reset cursor and remove hint
@@ -157,7 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const evolveSpeedSlider = document.getElementById('evolveSpeed');
     evolveSpeedSlider.addEventListener('change', () => {
         // Send evolution speed to server
-        socket.emit('setEvolveSpeed', parseInt(evolveSpeedSlider.value));
+        const speed = parseInt(evolveSpeedSlider.value);
+        console.log(`Sending evolution speed update to server: ${speed}`);
+        socket.emit('setEvolveSpeed', speed);
     });
     
     // Handle window resize
@@ -168,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Disconnect handler
     window.addEventListener('beforeunload', () => {
+        console.log('Page unloading - disconnecting from server');
         socket.disconnect();
     });
 
