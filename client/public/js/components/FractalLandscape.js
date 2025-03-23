@@ -327,15 +327,15 @@ class FractalLandscape {
                 lastFpsCheck: performance.now(),
                 frameCount: 0,
                 fps: 60,
-                adaptiveDetail: 0.2, // Start at moderate detail
-                targetDetail: 0.2,   // Target detail level
-                lastTarget: 0.2,     // Track last target for trend analysis
+                adaptiveDetail: 0.1, // Start at high detail (lower = more detail)
+                targetDetail: 0.1,   // Target detail level
+                lastTarget: 0.1,     // Track last target for trend analysis
                 minFrameTime: 9999,  // Track best frame time (ms)
                 fpsHistory: [],      // Track FPS history
                 detailHistory: [],   // Track detail level changes
                 highDetailMode: true,
                 triangleCount: 0,
-                triangleTarget: 8000, // Target triangle count
+                triangleTarget: 15000, // Higher target triangle count for better quality
                 lastDetailChange: performance.now(),
                 renderTime: 0,
                 detailAreas: 0,
@@ -377,9 +377,9 @@ class FractalLandscape {
                 // Dynamic adaptation logic - MUCH more aggressive
                 if (readyForChange) {
                     // Very aggressive increases for good performance
-                    if (avgFps > 58 && this.perfData.triangleCount < 12000) {
+                    if (avgFps > 58 && this.perfData.triangleCount < 20000) {
                         // Significant detail increase - 20% more triangles
-                        this.perfData.targetDetail = Math.max(0.01, this.perfData.adaptiveDetail * 0.8);
+                        this.perfData.targetDetail = Math.max(0.05, this.perfData.adaptiveDetail * 0.8); // Min 0.05 to limit max detail
                         this.perfData.upCount++;
                         this.perfData.downCount = 0;
                         this.perfData.lastDetailChange = now;
@@ -387,7 +387,7 @@ class FractalLandscape {
                                                         direction: "up", fps: avgFps});
                     } 
                     // Quick recovery if FPS drops too low
-                    else if (avgFps < 30) {
+                    else if (avgFps < 45) {
                         // Emergency detail reduction - 50% fewer triangles
                         this.perfData.targetDetail = this.perfData.adaptiveDetail * 1.5;
                         this.perfData.upCount = 0;
@@ -397,9 +397,9 @@ class FractalLandscape {
                                                         direction: "emergency", fps: avgFps});
                     }
                     // Moderate increases for good performance
-                    else if (avgFps > 50 && this.perfData.triangleCount < 10000) {
+                    else if (avgFps > 55 && this.perfData.triangleCount < 18000) {
                         // Moderate detail increase - 10% more triangles
-                        this.perfData.targetDetail = Math.max(0.01, this.perfData.adaptiveDetail * 0.9);
+                        this.perfData.targetDetail = Math.max(0.05, this.perfData.adaptiveDetail * 0.9); // Min 0.05 to limit max detail
                         this.perfData.upCount++;
                         this.perfData.downCount = 0;
                         this.perfData.lastDetailChange = now;
@@ -407,7 +407,7 @@ class FractalLandscape {
                                                        direction: "up", fps: avgFps});
                     }
                     // Gradual reduction if performance is marginal
-                    else if (avgFps < 45 && avgFps >= 30) {
+                    else if (avgFps < 50 && avgFps >= 45) {
                         // Gentle detail reduction - 10% fewer triangles
                         this.perfData.targetDetail = this.perfData.adaptiveDetail * 1.1;
                         this.perfData.upCount = 0;
@@ -433,9 +433,9 @@ class FractalLandscape {
             // Allow incredibly high detail if system proves it can handle it
             const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
                            this.perfData.fpsHistory.length;
-            if (this.perfData.upCount > 3 && avgFps > 55) {
-                // System has shown it can handle high detail - push further
-                this.perfData.triangleTarget = Math.min(20000, this.perfData.triangleTarget + 1000);
+            if (this.perfData.upCount > 3 && avgFps > 58) {
+                // System has shown it can handle high detail - push further but with higher limit
+                this.perfData.triangleTarget = Math.min(25000, this.perfData.triangleTarget + 1000);
             }
         }
         
