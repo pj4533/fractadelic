@@ -4,13 +4,12 @@ import ParticleSystem from './ParticleSystem.js';
 import TerrainRenderer from './TerrainRenderer.js';
 import PerformanceMonitor from './PerformanceMonitor.js';
 import SyncManager from './SyncManager.js';
+import AnimationManager from './AnimationManager.js';
 
 // Main FractalLandscape class - orchestrates all components
 class FractalLandscape {
     constructor(canvas, options = {}) {
         this.canvas = canvas;
-        this.width = canvas.width;
-        this.height = canvas.height;
         
         // Default options
         this.options = {
@@ -23,12 +22,6 @@ class FractalLandscape {
             useServerSync: true,     // Whether to use server-synchronized animation
             ...options
         };
-        
-        // Animation properties
-        this.globalTime = 0;
-        this.lastFrameTime = 0;
-        this.lastAutoEvolutionTime = 0;
-        this.waveOffset = 0;
         
         // Initialize components
         this.colorManager = new ColorManager(this.options.palette);
@@ -49,81 +42,25 @@ class FractalLandscape {
         this.performanceMonitor = new PerformanceMonitor();
         this.syncManager = new SyncManager();
         this.syncManager.setServerSyncEnabled(this.options.useServerSync);
+        this.animationManager = new AnimationManager(this);
         
         // Initialize the terrain
         this.terrainGenerator.initTerrain();
         
         // Initialize particles
-        this.particleSystem.initializeParticles(this.width, this.height);
+        this.particleSystem.initializeParticles(
+            this.renderer.width,
+            this.renderer.height
+        );
         
         // Start continuous animation loop
-        this.startContinuousAnimation();
+        this.animationManager.startAnimation();
     }
     
     // Calculate particle count based on density parameter
     calculateParticleCount(density) {
         // Map density 0.1-1.0 to particle count 20-300
         return Math.floor(20 + (density * 280));
-    }
-    
-    // Continuously animate the landscape for flowing, vibrant visuals
-    startContinuousAnimation() {
-        this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
-    }
-    
-    // Animation loop that runs continuously
-    continuousAnimation(timestamp) {
-        if (!this.lastFrameTime) this.lastFrameTime = timestamp;
-        const deltaTime = Math.min(timestamp - this.lastFrameTime, 33); // Cap at ~30fps to avoid large jumps
-        this.lastFrameTime = timestamp;
-        
-        const renderStart = performance.now();
-        
-        // Update dimensions if needed
-        this.renderer.updateDimensions();
-        this.width = this.renderer.width;
-        this.height = this.renderer.height;
-        
-        if (this.syncManager.useServerSync) {
-            // In server sync mode, use the rate-based synchronization system
-            const { newGlobalTime, newWaveOffset } = this.syncManager.applyServerSync(
-                deltaTime, 
-                this.globalTime, 
-                this.waveOffset, 
-                this.colorManager
-            );
-            
-            this.globalTime = newGlobalTime;
-            this.waveOffset = newWaveOffset;
-        } else {
-            // In local mode, use direct increments
-            // Use smaller increment values for smoother transitions
-            this.globalTime += deltaTime * 0.0005; // Half the original rate for smoother motion
-            
-            // Use smaller waveOffset increments for smoother transitions
-            this.waveOffset += (deltaTime * 0.0005) * this.options.waveIntensity;
-        }
-        
-        // Update color shift (in both modes)
-        this.colorManager.updateColorShift(deltaTime * 0.5); // Even slower color shifts
-        
-        // Auto-evolve less frequently and with smaller values
-        if (timestamp - this.lastAutoEvolutionTime > 250) { // Even lower frequency
-            this.terrainGenerator.microEvolve(0.0003); // Smaller evolution amount
-            this.lastAutoEvolutionTime = timestamp;
-        }
-        
-        // Update particles
-        this.particleSystem.updateParticles(deltaTime, this.width, this.height);
-        
-        // Render the scene
-        this.render();
-        
-        // Update performance metrics
-        this.performanceMonitor.setRenderTime(performance.now() - renderStart);
-        
-        // Continue animation
-        this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
     }
     
     // Add a seed point with ripple effect
@@ -133,8 +70,8 @@ class FractalLandscape {
         
         // Add a burst of particles
         this.particleSystem.addParticleBurst(
-            x * this.width, 
-            y * this.height, 
+            x * this.renderer.width, 
+            y * this.renderer.height, 
             value
         );
     }
@@ -158,7 +95,11 @@ class FractalLandscape {
                 for (let i = 0; i < 5; i++) {
                     const x = Math.random();
                     const y = Math.random();
-                    this.particleSystem.addParticleBurst(x * this.width, y * this.height, 0.8);
+                    this.particleSystem.addParticleBurst(
+                        x * this.renderer.width, 
+                        y * this.renderer.height, 
+                        0.8
+                    );
                 }
             }
         }
@@ -177,11 +118,13 @@ class FractalLandscape {
     
     // Update animation state from server
     updateAnimationState(animState) {
+        const { globalTime, waveOffset } = this.animationManager.getAnimationState();
+        
         // Update sync manager with new state
         this.syncManager.updateAnimationState(
             animState,
-            this.globalTime,
-            this.waveOffset,
+            globalTime,
+            waveOffset,
             this.colorManager
         );
         
@@ -202,7 +145,10 @@ class FractalLandscape {
         this.terrainGenerator.evolve(rate);
         
         // Renew particles to match new terrain
-        this.particleSystem.initializeParticles(this.width, this.height);
+        this.particleSystem.initializeParticles(
+            this.renderer.width,
+            this.renderer.height
+        );
     }
     
     // Render the terrain to the canvas
@@ -213,16 +159,16 @@ class FractalLandscape {
         // Get detail level from performance monitor
         const detailLevel = this.performanceMonitor.getDetailLevel();
         
+        // Get current animation state
+        const { globalTime, waveOffset } = this.animationManager.getAnimationState();
+        
         // Render terrain
         const { triangleCount, detailAreaCount } = this.renderer.renderTerrain(
-            this.globalTime,
-            this.waveOffset,
+            globalTime,
+            waveOffset,
             this.options, 
             detailLevel
         );
-        
-        // Log the triangle count for debugging
-        console.log(`Frame rendered with ${triangleCount} triangles at detail level ${detailLevel}`);
         
         // Update performance metrics
         this.performanceMonitor.updateMetrics(triangleCount, detailAreaCount);
