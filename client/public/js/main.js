@@ -24,27 +24,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Controls state
     const controls = {
-        roughness: 0.5,
         palette: 'cosmic',
-        evolveSpeed: 5,
-        seedCount: 0,
+        waveIntensity: 0.5,
+        glowIntensity: 0.5,
+        particleDensity: 0.5,
         // Throttle control to prevent spamming the server
         lastUpdate: {
-            roughness: 0,
             palette: 0,
-            seed: 0,
-            evolveSpeed: 0
+            waveIntensity: 0,
+            glowIntensity: 0,
+            particleDensity: 0
         },
         // Minimum time between updates (milliseconds)
-        throttleTime: 250,
+        throttleTime: 200,
         // Visual feedback element
         feedbackElement: null,
         // Parameter display elements
         elements: {
-            roughness: document.getElementById('roughness-value'),
             palette: document.getElementById('palette-value'),
-            evolution: document.getElementById('evolution-value'),
-            seeds: document.getElementById('seeds-value')
+            wave: document.getElementById('wave-value'),
+            glow: document.getElementById('glow-value'),
+            particles: document.getElementById('particles-value')
         }
     };
     
@@ -84,24 +84,31 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('state', (state) => {
         console.log(`Received state update:`, state);
         
-        // Update local fractal with server state (will trigger animation)
-        fractal.updateOptions({
-            roughness: state.roughness,
+        // Extract and default missing values for backward compatibility
+        const options = {
             palette: state.palette,
-            seedPoints: state.seedPoints
-        });
+            seedPoints: state.seedPoints,
+            waveIntensity: state.waveIntensity ?? controls.waveIntensity,
+            glowIntensity: state.glowIntensity ?? controls.glowIntensity,
+            particleDensity: state.particleDensity ?? controls.particleDensity
+        };
+        
+        // Update local fractal with server state (will trigger animation)
+        fractal.updateOptions(options);
         
         // Update control state
-        controls.roughness = state.roughness;
-        controls.palette = state.palette;
-        controls.seedCount = state.seedPoints.length;
+        controls.palette = options.palette;
+        controls.waveIntensity = options.waveIntensity;
+        controls.glowIntensity = options.glowIntensity;
+        controls.particleDensity = options.particleDensity;
         
         // Update parameter display
-        updateParameterDisplay('roughness', state.roughness.toFixed(2));
-        updateParameterDisplay('palette', state.palette);
-        updateParameterDisplay('seeds', state.seedPoints.length);
+        updateParameterDisplay('palette', options.palette);
+        updateParameterDisplay('wave', options.waveIntensity.toFixed(2));
+        updateParameterDisplay('glow', options.glowIntensity.toFixed(2));
+        updateParameterDisplay('particles', options.particleDensity.toFixed(2));
         
-        console.log(`Applied state update to fractal: roughness=${state.roughness}, palette=${state.palette}, seedPoints=${state.seedPoints.length}`);
+        console.log(`Applied state update to fractal with new visual parameters`);
     });
     
     // Handle incoming seed points from other users
@@ -250,41 +257,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Update roughness with throttling
-    function updateRoughness(delta) {
+    // Update wave intensity
+    function updateWaveIntensity(delta) {
         const now = Date.now();
-        if (now - controls.lastUpdate.roughness < controls.throttleTime) return;
+        if (now - controls.lastUpdate.waveIntensity < controls.throttleTime) return;
         
-        // Update roughness with constraints
-        controls.roughness = Math.max(0.1, Math.min(0.9, controls.roughness + delta));
-        controls.lastUpdate.roughness = now;
+        // Update with constraints
+        controls.waveIntensity = Math.max(0.1, Math.min(1.0, controls.waveIntensity + delta));
+        controls.lastUpdate.waveIntensity = now;
         
         // Update locally
-        fractal.updateOptions({ roughness: controls.roughness });
+        fractal.updateOptions({ waveIntensity: controls.waveIntensity });
         
         // Update parameter display
-        updateParameterDisplay('roughness', controls.roughness.toFixed(2));
+        updateParameterDisplay('wave', controls.waveIntensity.toFixed(2));
         
         // Send to server
-        console.log(`Sending roughness update to server: ${controls.roughness}`);
-        socket.emit('updateOption', { roughness: controls.roughness });
+        console.log(`Sending wave intensity update to server: ${controls.waveIntensity}`);
+        socket.emit('updateOption', { waveIntensity: controls.waveIntensity });
     }
     
-    // Update evolution speed with throttling
-    function updateEvolveSpeed(delta) {
+    // Update glow intensity
+    function updateGlowIntensity(delta) {
         const now = Date.now();
-        if (now - controls.lastUpdate.evolveSpeed < controls.throttleTime) return;
+        if (now - controls.lastUpdate.glowIntensity < controls.throttleTime) return;
         
-        // Update speed with constraints
-        controls.evolveSpeed = Math.max(1, Math.min(10, controls.evolveSpeed + delta));
-        controls.lastUpdate.evolveSpeed = now;
+        // Update with constraints
+        controls.glowIntensity = Math.max(0.1, Math.min(1.0, controls.glowIntensity + delta));
+        controls.lastUpdate.glowIntensity = now;
+        
+        // Update locally
+        fractal.updateOptions({ glowIntensity: controls.glowIntensity });
         
         // Update parameter display
-        updateParameterDisplay('evolution', controls.evolveSpeed);
+        updateParameterDisplay('glow', controls.glowIntensity.toFixed(2));
         
         // Send to server
-        console.log(`Sending evolution speed update to server: ${controls.evolveSpeed}`);
-        socket.emit('setEvolveSpeed', controls.evolveSpeed);
+        console.log(`Sending glow intensity update to server: ${controls.glowIntensity}`);
+        socket.emit('updateOption', { glowIntensity: controls.glowIntensity });
+    }
+    
+    // Update particle density
+    function updateParticleDensity(delta) {
+        const now = Date.now();
+        if (now - controls.lastUpdate.particleDensity < controls.throttleTime) return;
+        
+        // Update with constraints
+        controls.particleDensity = Math.max(0.1, Math.min(1.0, controls.particleDensity + delta));
+        controls.lastUpdate.particleDensity = now;
+        
+        // Update locally
+        fractal.updateOptions({ particleDensity: controls.particleDensity });
+        
+        // Update parameter display
+        updateParameterDisplay('particles', controls.particleDensity.toFixed(2));
+        
+        // Send to server
+        console.log(`Sending particle density update to server: ${controls.particleDensity}`);
+        socket.emit('updateOption', { particleDensity: controls.particleDensity });
     }
     
     // Update palette
@@ -336,26 +366,35 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ignore if user is typing in an input field
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
-        switch (e.key) {
-            // Roughness controls
-            case 'ArrowUp':
-                updateRoughness(0.02);
-                showKeyFeedback('↑', 'Increase roughness');
+        switch (e.key.toLowerCase()) {
+            // Wave flow controls (W/S)
+            case 'w':
+                updateWaveIntensity(0.05);
+                showKeyFeedback('W', 'Increase wave flow');
                 break;
-            case 'ArrowDown':
-                updateRoughness(-0.02);
-                showKeyFeedback('↓', 'Decrease roughness');
+            case 's':
+                updateWaveIntensity(-0.05);
+                showKeyFeedback('S', 'Decrease wave flow');
                 break;
                 
-            // Evolution speed
-            case '+':
-            case '=':
-                updateEvolveSpeed(1);
-                showKeyFeedback('+', 'Increase evolution speed');
+            // Glow intensity controls (G/H)
+            case 'g':
+                updateGlowIntensity(0.05);
+                showKeyFeedback('G', 'Increase glow intensity');
                 break;
-            case '-':
-                updateEvolveSpeed(-1);
-                showKeyFeedback('-', 'Decrease evolution speed');
+            case 'h':
+                updateGlowIntensity(-0.05);
+                showKeyFeedback('H', 'Decrease glow intensity');
+                break;
+                
+            // Particle density controls (D/F)
+            case 'd':
+                updateParticleDensity(0.05);
+                showKeyFeedback('D', 'Increase particle density');
+                break;
+            case 'f':
+                updateParticleDensity(-0.05);
+                showKeyFeedback('F', 'Decrease particle density');
                 break;
                 
             // Seed points with different intensities
@@ -437,11 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
     keyboardHelp.innerHTML = `
         <h3>Keyboard Controls</h3>
         <ul>
-            <li><strong>↑/↓</strong> - Adjust roughness</li>
-            <li><strong>+/-</strong> - Adjust evolution speed</li>
+            <li><strong>W/S</strong> - Increase/decrease wave flow</li>
+            <li><strong>G/H</strong> - Increase/decrease glow intensity</li>
+            <li><strong>D/F</strong> - Increase/decrease particle density</li>
+            <li><strong>P</strong> - Change color palette</li>
             <li><strong>Space</strong> - Add random seed point</li>
             <li><strong>1/2/3</strong> - Add small/medium/large seed points</li>
-            <li><strong>P</strong> - Change color palette</li>
             <li><strong>R</strong> - Add ripple effect</li>
             <li><strong>C</strong> - Add circle ripple pattern</li>
             <li><strong>L</strong> - Add line ripple pattern</li>

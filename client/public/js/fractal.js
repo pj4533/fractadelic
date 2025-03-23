@@ -11,6 +11,9 @@ class FractalLandscape {
             roughness: 0.5,
             palette: 'cosmic',
             seedPoints: [],
+            particleDensity: 0.5,    // 0.1 to 1.0 - controls number of particles
+            glowIntensity: 0.5,      // 0.1 to 1.0 - controls glow effect
+            waveIntensity: 0.5,      // 0.1 to 1.0 - controls wave-like movement
             ...options
         };
         
@@ -18,6 +21,7 @@ class FractalLandscape {
         this.globalTime = 0;
         this.lastFrameTime = 0;
         this.lastAutoEvolutionTime = 0;
+        this.waveOffset = 0;
         
         // Initialize components
         this.colorManager = new ColorManager(this.options.palette);
@@ -27,7 +31,8 @@ class FractalLandscape {
         );
         this.particleSystem = new ParticleSystem(
             this.terrainGenerator,
-            this.colorManager
+            this.colorManager,
+            this.calculateParticleCount(this.options.particleDensity)
         );
         this.rippleEffect = new RippleEffect(
             this.width,
@@ -45,6 +50,12 @@ class FractalLandscape {
         this.startContinuousAnimation();
     }
     
+    // Calculate particle count based on density parameter
+    calculateParticleCount(density) {
+        // Map density 0.1-1.0 to particle count 20-300
+        return Math.floor(20 + (density * 280));
+    }
+    
     // Continuously animate the landscape for flowing, vibrant visuals
     startContinuousAnimation() {
         this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
@@ -60,6 +71,9 @@ class FractalLandscape {
         this.globalTime += deltaTime * 0.001;
         this.colorManager.updateColorShift(deltaTime);
 
+        // Update wave effect
+        this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+        
         // Auto-evolve the landscape very subtly
         if (timestamp - this.lastAutoEvolutionTime > 100) { // Micro-evolve every 100ms
             this.terrainGenerator.microEvolve(0.001);
@@ -104,6 +118,24 @@ class FractalLandscape {
         if (options.palette) {
             this.colorManager.setPalette(options.palette);
         }
+        
+        // Update particle density
+        if (options.particleDensity !== undefined) {
+            this.particleSystem.maxParticles = this.calculateParticleCount(options.particleDensity);
+            
+            // Create particle explosion effect when increasing density
+            if (this.particleSystem.particles.length < this.particleSystem.maxParticles) {
+                for (let i = 0; i < 5; i++) {
+                    const x = Math.random();
+                    const y = Math.random();
+                    this.addParticleBurst(x * this.width, y * this.height, 0.8);
+                }
+            }
+        }
+        
+        // Update glowIntensity (handled in render methods)
+        
+        // Update waveIntensity (used in animation)
         
         // Only regenerate terrain if roughness changed
         if (options.roughness !== undefined) {
@@ -172,18 +204,33 @@ class FractalLandscape {
     
     // Render terrain
     renderTerrain(pixelWidth, pixelHeight) {
-        // Draw the terrain with pulsating glow
+        // Draw the terrain with pulsating glow and wave effect
         for (let y = 0; y < this.terrainGenerator.gridSize - 1; y++) {
             for (let x = 0; x < this.terrainGenerator.gridSize - 1; x++) {
+                // Apply wave distortion
+                const waveEffect = this.options.waveIntensity * Math.sin(x / 5 + y / 5 + this.waveOffset * 3) * 10;
+                
+                // Get terrain value with potential wave distortion
                 const value = this.terrainGenerator.getValue(x, y);
+                
+                // Get base colors
                 const baseColor = this.colorManager.getHeightColor(value);
-                const glowColor = this.colorManager.getGlowColor(baseColor, x, y, this.globalTime);
+                
+                // Apply glow with intensity
+                const glowIntensity = this.options.glowIntensity || 0.5;
+                const glowColor = this.colorManager.getGlowColor(
+                    baseColor, 
+                    x, y, 
+                    this.globalTime, 
+                    glowIntensity
+                );
                 
                 this.ctx.fillStyle = glowColor;
                 
                 // Draw rounded pixels for a smoother look
-                const xPos = x * pixelWidth;
-                const yPos = y * pixelHeight;
+                // Apply wave effect to position
+                const xPos = x * pixelWidth + (waveEffect * Math.sin(y / 10 + this.waveOffset));
+                const yPos = y * pixelHeight + (waveEffect * Math.cos(x / 10 + this.waveOffset));
                 
                 // Use rounded rectangles for a smoother appearance
                 this.ctx.beginPath();
@@ -192,7 +239,7 @@ class FractalLandscape {
                     yPos, 
                     pixelWidth + 1, 
                     pixelHeight + 1,
-                    2 // Corner radius
+                    1 + glowIntensity * 3 // Corner radius affected by glow
                 );
                 this.ctx.fill();
             }
@@ -309,19 +356,22 @@ class ColorManager {
     }
     
     // Get color with a pulsating glow effect
-    getGlowColor(color, x, y, globalTime) {
+    getGlowColor(color, x, y, globalTime, intensity = 0.5) {
         // Extract RGB components
         const r = parseInt(color.substring(1, 3), 16);
         const g = parseInt(color.substring(3, 5), 16);
         const b = parseInt(color.substring(5, 7), 16);
         
         // Calculate a pulsating factor based on position and time
-        const pulseFactor = 0.2 * Math.sin(x / 30 + y / 30 + globalTime * 2) + 1;
+        // Scale the effect by the intensity parameter
+        const pulseFactor = (0.2 + intensity * 0.3) * 
+                           Math.sin(x / 30 + y / 30 + globalTime * (1 + intensity)) + 1;
         
-        // Apply the pulse factor
-        const rNew = Math.min(255, Math.round(r * pulseFactor));
-        const gNew = Math.min(255, Math.round(g * pulseFactor));
-        const bNew = Math.min(255, Math.round(b * pulseFactor));
+        // Apply the pulse factor with intensity boost
+        const intensityMultiplier = 1 + (intensity * 0.5);
+        const rNew = Math.min(255, Math.round(r * pulseFactor * intensityMultiplier));
+        const gNew = Math.min(255, Math.round(g * pulseFactor * intensityMultiplier));
+        const bNew = Math.min(255, Math.round(b * pulseFactor * intensityMultiplier));
         
         // Convert back to hex
         return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
@@ -504,11 +554,11 @@ class TerrainGenerator {
 
 // Manages particle effects
 class ParticleSystem {
-    constructor(terrainGenerator, colorManager) {
+    constructor(terrainGenerator, colorManager, maxParticles = 100) {
         this.terrainGenerator = terrainGenerator;
         this.colorManager = colorManager;
         this.particles = [];
-        this.maxParticles = 100;
+        this.maxParticles = maxParticles;
     }
     
     // Create particles based on terrain
