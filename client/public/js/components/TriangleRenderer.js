@@ -51,12 +51,19 @@ class TriangleRenderer {
             
             // Fill with average color
             this.ctx.fillStyle = avgColor;
+            // Add stroke with same color as fill to eliminate tiny gaps between triangles
+            this.ctx.strokeStyle = avgColor;
+            this.ctx.lineWidth = 1;
             this.ctx.fill();
+            this.ctx.stroke();
         } catch (error) {
             // Fallback if color parsing fails
             console.warn('Error processing triangle colors:', error);
             this.ctx.fillStyle = '#000000';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.fill();
+            this.ctx.stroke();
         }
     }
     
