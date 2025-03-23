@@ -123,17 +123,29 @@ class PerformanceAdapter {
         const fpsDistance = Math.abs(avgFps - metrics.targetFps);
         const nearTargetFps = fpsDistance <= 5; // Stricter definition of "near target" for faster adaptation
             
-        // Prioritize stability and convergence over speed
+        // Prioritize stability and convergence over speed, but with better handling of high FPS
         if (metrics.optimalDetailFound) {
             // Moderately slow adaptation when optimal settings are found, but not too slow
             adaptationRate = 0.2;
             
             // Check if we're in a very stable state (FPS in perfect range)
             const stableAvgFps = avgFps;
-                          
-            if (stableAvgFps >= 31 && stableAvgFps <= 36) {
+            
+            // Reset optimal flag if we've drifted too far from target
+            if (stableAvgFps > 55 || stableAvgFps < 25) {
+                // We've drifted too far, need to reset optimization state
+                metrics.optimalDetailFound = false;
+                console.log("Resetting optimal detail flag due to FPS drift:", stableAvgFps);
+                // Use faster adaptation to get back on track
+                adaptationRate = 0.5;
+            }
+            else if (stableAvgFps >= 31 && stableAvgFps <= 36) {
                 // In the perfect sweet spot - use moderately slow adaptation but still responsive enough
                 adaptationRate = 0.1;
+            }
+            else if (stableAvgFps > 45) {
+                // We're running faster than needed, increase adaptation rate
+                adaptationRate = 0.35;
             }
         } else if (nearTargetFps) {
             // When near the target FPS, move more quickly to reach target
@@ -147,6 +159,12 @@ class PerformanceAdapter {
                 // Detected oscillation - use slower adaptation but not too slow
                 adaptationRate = 0.25;
             }
+        }
+        
+        // Special handling for high FPS case to prevent getting stuck
+        if (avgFps > 50 && Math.abs(detailDiff) < 0.02) {
+            // We're at high FPS with very small detail difference - force minimum change
+            adaptationRate = Math.max(adaptationRate, 0.3);
         }
         
         // Apply the calculated adaptation rate with a smooth transition

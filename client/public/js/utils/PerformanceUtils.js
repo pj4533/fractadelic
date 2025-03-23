@@ -140,6 +140,20 @@ export const calculateDetailLevel = (perfData, avgFps, triangleCount, detailArea
                 targetDetail = Math.max(0.08, data.adaptiveDetail * 0.95);
                 changeDirection = "up";
                 changeReason = "fps-good";
+            } else if (avgFps >= 55 && avgFps < 58) {
+                // FPS very good but could be better - make small detail adjustments
+                // This fixes the gap that occurs at ~55 FPS where no condition triggers
+                if (triangleCount > PERFORMANCE.preferredTriangleRange.max) {
+                    // Too many triangles, reduce detail slightly
+                    targetDetail = data.adaptiveDetail * 1.05;
+                    changeDirection = "down";
+                    changeReason = "fps-very-good-high-triangles";
+                } else {
+                    // In a good range, make smaller adjustment
+                    targetDetail = Math.max(0.08, data.adaptiveDetail * 0.97);
+                    changeDirection = "up";
+                    changeReason = "fps-very-good";
+                }
             }
         }
     }
@@ -201,7 +215,11 @@ export const calculateMaxAllowedChange = (perfData, avgFps) => {
     
     // Calculate based on convergence state
     if (perfData.optimalDetailFound) {
-        // Very small changes allowed once optimal is found
+        // Increased minimum change to prevent getting stuck at high FPS
+        if (avgFps > 50) {
+            // Allow more adjustment even when "optimal" is found if FPS is drifting high
+            return Math.max(perfData.minAllowedDetailChange * 2, 0.08);
+        }
         return perfData.minAllowedDetailChange;
     }
     
@@ -226,6 +244,12 @@ export const calculateMaxAllowedChange = (perfData, avgFps) => {
     // Scale between min and max allowed change
     let maxAllowedChange = perfData.minAllowedDetailChange + 
         (perfData.initialMaxAllowedDetailChange - perfData.minAllowedDetailChange) * finalFactor;
+    
+    // Ensure minimum change is high enough to be effective, especially at high FPS
+    if (avgFps > 45) {
+        // Ensure at least a moderate change amount at higher FPS
+        maxAllowedChange = Math.max(maxAllowedChange, 0.10);
+    }
         
     // If average FPS is much lower than target (below 20), allow even larger changes
     if (avgFps < 20) {
