@@ -17,36 +17,25 @@
             <canvas id="fractalCanvas"></canvas>
         </div>
         
-        <div class="controls">
-            <div class="control-group">
-                <label for="colorPalette">Color Palette:</label>
-                <select id="colorPalette">
-                    <option value="cosmic">Cosmic</option>
-                    <option value="neon">Neon</option>
-                    <option value="candy">Candy</option>
-                    <option value="sunset">Sunset</option>
-                    <option value="lava">Lava</option>
-                    <option value="rainbow">Rainbow</option>
-                    <option value="earth">Earth</option>
-                    <option value="ocean">Ocean</option>
-                    <option value="fire">Fire</option>
-                    <option value="forest">Forest</option>
-                </select>
+        <div class="parameter-display">
+            <div class="param-item">
+                <div class="param-label">Palette</div>
+                <div id="palette-value" class="param-value">cosmic</div>
             </div>
             
-            <div class="control-group">
-                <label for="roughness">Roughness:</label>
-                <input type="range" id="roughness" min="0.1" max="1.0" step="0.1" value="0.5">
+            <div class="param-item">
+                <div class="param-label">Roughness</div>
+                <div id="roughness-value" class="param-value">0.50</div>
             </div>
             
-            <div class="control-group">
-                <label for="seed">Seed Point:</label>
-                <button id="addSeed">Add Seed</button>
+            <div class="param-item">
+                <div class="param-label">Evolution Speed</div>
+                <div id="evolution-value" class="param-value">5</div>
             </div>
             
-            <div class="control-group">
-                <label for="evolveSpeed">Evolution Speed:</label>
-                <input type="range" id="evolveSpeed" min="1" max="10" value="5">
+            <div class="param-item">
+                <div class="param-label">Seed Points</div>
+                <div id="seeds-value" class="param-value">0</div>
             </div>
         </div>
         

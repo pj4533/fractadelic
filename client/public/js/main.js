@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Controls state
     const controls = {
         roughness: 0.5,
+        palette: 'cosmic',
         evolveSpeed: 5,
+        seedCount: 0,
         // Throttle control to prevent spamming the server
         lastUpdate: {
             roughness: 0,
@@ -36,7 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Minimum time between updates (milliseconds)
         throttleTime: 250,
         // Visual feedback element
-        feedbackElement: null
+        feedbackElement: null,
+        // Parameter display elements
+        elements: {
+            roughness: document.getElementById('roughness-value'),
+            palette: document.getElementById('palette-value'),
+            evolution: document.getElementById('evolution-value'),
+            seeds: document.getElementById('seeds-value')
+        }
     };
     
     // Connect to the server
@@ -74,9 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle incoming state from server
     socket.on('state', (state) => {
         console.log(`Received state update:`, state);
-        // Update UI controls to match
-        document.getElementById('roughness').value = state.roughness;
-        document.getElementById('colorPalette').value = state.palette;
         
         // Update local fractal with server state (will trigger animation)
         fractal.updateOptions({
@@ -87,6 +93,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update control state
         controls.roughness = state.roughness;
+        controls.palette = state.palette;
+        controls.seedCount = state.seedPoints.length;
+        
+        // Update parameter display
+        updateParameterDisplay('roughness', state.roughness.toFixed(2));
+        updateParameterDisplay('palette', state.palette);
+        updateParameterDisplay('seeds', state.seedPoints.length);
         
         console.log(`Applied state update to fractal: roughness=${state.roughness}, palette=${state.palette}, seedPoints=${state.seedPoints.length}`);
     });
@@ -95,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('newSeed', (seedPoint) => {
         console.log(`Received new seed point from another user:`, seedPoint);
         fractal.addSeedPoint(seedPoint.x, seedPoint.y, seedPoint.value);
+        controls.seedCount++;
+        updateParameterDisplay('seeds', controls.seedCount);
     });
     
     // Handle evolution updates from server
@@ -128,6 +143,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     }
     
+    // Function to update parameter display with highlight effect
+    function updateParameterDisplay(param, value) {
+        let element;
+        
+        switch(param) {
+            case 'roughness':
+                element = controls.elements.roughness;
+                break;
+            case 'palette':
+                element = controls.elements.palette;
+                break;
+            case 'evolution':
+                element = controls.elements.evolution;
+                break;
+            case 'seeds':
+                element = controls.elements.seeds;
+                break;
+            default:
+                return;
+        }
+        
+        if (element) {
+            // Update value
+            element.textContent = value;
+            
+            // Add highlight effect
+            const parentItem = element.parentElement;
+            parentItem.classList.add('highlight');
+            
+            // Remove highlight after animation
+            setTimeout(() => {
+                parentItem.classList.remove('highlight');
+            }, 500);
+        }
+    }
+    
     // Add a random seed point
     function addRandomSeed(intensity = 0.6) {
         const now = Date.now();
@@ -146,6 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             fractal.addRipple(x, y, value * 0.8);
         }, 100);
+        
+        // Increment seed count and update display
+        controls.seedCount++;
+        updateParameterDisplay('seeds', controls.seedCount);
         
         // Send to server
         console.log(`Sending new seed point to server: x=${x.toFixed(2)}, y=${y.toFixed(2)}, value=${value.toFixed(2)}`);
@@ -207,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update locally
         fractal.updateOptions({ roughness: controls.roughness });
         
-        // Update UI
-        document.getElementById('roughness').value = controls.roughness;
+        // Update parameter display
+        updateParameterDisplay('roughness', controls.roughness.toFixed(2));
         
         // Send to server
         console.log(`Sending roughness update to server: ${controls.roughness}`);
@@ -224,40 +279,26 @@ document.addEventListener('DOMContentLoaded', () => {
         controls.evolveSpeed = Math.max(1, Math.min(10, controls.evolveSpeed + delta));
         controls.lastUpdate.evolveSpeed = now;
         
-        // Update UI
-        document.getElementById('evolveSpeed').value = controls.evolveSpeed;
+        // Update parameter display
+        updateParameterDisplay('evolution', controls.evolveSpeed);
         
         // Send to server
         console.log(`Sending evolution speed update to server: ${controls.evolveSpeed}`);
         socket.emit('setEvolveSpeed', controls.evolveSpeed);
     }
     
-    // Add subtle evolution effect
-    function triggerSubtleEvolution() {
-        fractal.evolve(0.005); // Very subtle local evolution
-    }
-    
-    // Keep existing UI controls functional
-    
-    // UI control event listeners with real-time updates
-    const roughnessSlider = document.getElementById('roughness');
-    roughnessSlider.addEventListener('input', () => {
-        const roughness = parseFloat(roughnessSlider.value);
-        fractal.updateOptions({ roughness });
-        controls.roughness = roughness;
-    });
-    
-    // Only send to server when done changing (for bandwidth efficiency)
-    roughnessSlider.addEventListener('change', () => {
-        const roughness = parseFloat(roughnessSlider.value);
-        console.log(`Sending roughness update to server: ${roughness}`);
-        socket.emit('updateOption', { roughness });
-    });
-    
-    const colorPalette = document.getElementById('colorPalette');
-    colorPalette.addEventListener('change', () => {
-        const palette = colorPalette.value;
-        fractal.updateOptions({ palette });
+    // Update palette
+    function updatePalette(paletteName) {
+        const now = Date.now();
+        if (now - controls.lastUpdate.palette < controls.throttleTime) return;
+        controls.lastUpdate.palette = now;
+        
+        // Update locally
+        fractal.updateOptions({ palette: paletteName });
+        controls.palette = paletteName;
+        
+        // Update parameter display
+        updateParameterDisplay('palette', paletteName);
         
         // Add some ripples for visual effect on palette change
         for (let i = 0; i < 5; i++) {
@@ -269,19 +310,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }, i * 100);
         }
         
-        // Send update to server
-        console.log(`Sending palette update to server: ${palette}`);
-        socket.emit('updateOption', { palette });
-    });
+        // Send to server
+        console.log(`Sending palette update to server: ${paletteName}`);
+        socket.emit('updateOption', { palette: paletteName });
+    }
     
-    const evolveSpeedSlider = document.getElementById('evolveSpeed');
-    evolveSpeedSlider.addEventListener('change', () => {
-        // Send evolution speed to server
-        const speed = parseInt(evolveSpeedSlider.value);
-        controls.evolveSpeed = speed;
-        console.log(`Sending evolution speed update to server: ${speed}`);
-        socket.emit('setEvolveSpeed', speed);
-    });
+    // Add subtle evolution effect
+    function triggerSubtleEvolution() {
+        fractal.evolve(0.005); // Very subtle local evolution
+    }
+    
+    // Initialize parameter displays
+    function initializeDisplays() {
+        updateParameterDisplay('roughness', controls.roughness.toFixed(2));
+        updateParameterDisplay('palette', controls.palette);
+        updateParameterDisplay('evolution', controls.evolveSpeed);
+        updateParameterDisplay('seeds', controls.seedCount);
+    }
+    
+    // Call initialization
+    initializeDisplays();
     
     // Add keyboard controls
     document.addEventListener('keydown', (e) => {
@@ -346,6 +394,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 showKeyFeedback('E', 'Subtle evolution');
                 break;
                 
+            // Palette changes
+            case 'p': // Next palette
+                const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];
+                const currentIndex = palettes.indexOf(controls.palette);
+                const nextIndex = (currentIndex + 1) % palettes.length;
+                updatePalette(palettes[nextIndex]);
+                showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
+                break;
+                
             // No default case needed
         }
     });
@@ -383,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <li><strong>+/-</strong> - Adjust evolution speed</li>
             <li><strong>Space</strong> - Add random seed point</li>
             <li><strong>1/2/3</strong> - Add small/medium/large seed points</li>
+            <li><strong>P</strong> - Change color palette</li>
             <li><strong>R</strong> - Add ripple effect</li>
             <li><strong>C</strong> - Add circle ripple pattern</li>
             <li><strong>L</strong> - Add line ripple pattern</li>
@@ -390,4 +448,5 @@ document.addEventListener('DOMContentLoaded', () => {
         </ul>
     `;
     document.body.appendChild(keyboardHelp);
+    
 });
