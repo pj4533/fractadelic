@@ -109,21 +109,23 @@ header .help-text {
 
 .status-overlay {
     position: fixed;
-    top: 80px; /* Moved to top instead of bottom */
-    left: 20px;
+    bottom: 80px; /* Positioned below the parameter display */
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    z-index: 900;
+    flex-direction: row;
+    gap: 15px;
+    z-index: 800; /* Lower z-index than parameter display */
     background-color: rgba(20, 20, 35, 0.5);
-    padding: 8px 12px;
+    padding: 6px 15px;
     border-radius: 10px;
     backdrop-filter: blur(5px);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #64dfdf;
     opacity: 0.7;
     transition: opacity 0.3s ease;
-    box-shadow: 0 0 15px rgba(100, 223, 223, 0.2);
+    box-shadow: 0 0 10px rgba(100, 223, 223, 0.2);
+    text-align: center;
 }
 
 .status-overlay:hover {
@@ -232,7 +234,7 @@ header .help-text {
 .user-info {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #64dfdf;
     animation: pulse 2s infinite alternate;
 }
@@ -243,14 +245,33 @@ header .help-text {
 }
 
 .server-status {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.server-status::before {
+    content: "•";
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 1.5rem;
+    line-height: 0;
 }
 
 .server-status.connected {
     color: #4caf50;
 }
 
+.server-status.connected::before {
+    color: #4caf50;
+}
+
 .server-status.disconnected {
+    color: #f44336;
+}
+
+.server-status.disconnected::before {
     color: #f44336;
 }
 
@@ -333,6 +354,12 @@ header .help-text {
         height: calc(100vh - 240px); /* Ensure more space at bottom for controls */
         margin-bottom: 120px;
     }
+    
+    .status-overlay {
+        bottom: 65px;
+        padding: 4px 10px;
+        font-size: 0.7rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -369,6 +396,17 @@ header .help-text {
     
     h1 {
         font-size: 1.8rem;
+    }
+    
+    .status-overlay {
+        bottom: 110px;
+        flex-direction: column;
+        gap: 3px;
+        padding: 3px 8px;
+    }
+    
+    .server-status {
+        margin-left: 0;
     }
 }
 
