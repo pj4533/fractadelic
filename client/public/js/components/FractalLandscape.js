@@ -310,20 +310,31 @@ class FractalLandscape {
         this.renderParticles();
     }
     
-    // Render terrain using adaptive detail triangular mesh
+    // Render terrain using fixed high density triangular mesh with anti-flashing
     renderTerrain(pixelWidth, pixelHeight) {
-        // Solve triangle rendering issues - force higher density
+        // Static grid offset to prevent flashing (remain stable between frames)
+        if (!this.gridOffset) {
+            this.gridOffset = {
+                lastWaveOffset: this.waveOffset,
+                speedFactor: 0.05 // Slow down wave movement to reduce flashing
+            };
+        }
+        
+        // Solve triangle rendering issues - force very high density
         // Performance measurements to adapt level of detail
         if (!this.perfData) {
             this.perfData = {
                 lastFpsCheck: performance.now(),
                 frameCount: 0,
                 fps: 60,
-                adaptiveDetail: 0.5, // Start with 2x more triangles (0.5 = higher detail)
-                highDetailMode: true, // Start in high detail mode
+                adaptiveDetail: 0.2, // Start with 5x more triangles (0.2 = very high detail)
+                targetDetail: 0.2,   // Target detail level
+                minDetail: 0.1,      // Maximum detail (minimum value)
+                highDetailMode: true,
                 triangleCount: 0,
                 renderTime: 0,
-                detailAreas: 0
+                detailAreas: 0,
+                triangleHistory: []  // Track history for stability
             };
         }
         
@@ -339,27 +350,31 @@ class FractalLandscape {
             this.perfData.frameCount = 0;
             this.perfData.lastFpsCheck = now;
             
-            // Adapt detail level based on FPS
-            if (fps < 30 && this.perfData.adaptiveDetail < 2) {
+            // MUCH more aggressive detail increases when performance is good
+            if (fps < 30 && this.perfData.adaptiveDetail < 1.0) {
                 // Reduce detail level if FPS is too low
-                this.perfData.adaptiveDetail += 0.25;
-                this.perfData.highDetailMode = false;
-            } else if (fps > 45 && this.perfData.adaptiveDetail > 0.25) {
-                // Increase detail level if FPS is good
-                this.perfData.adaptiveDetail -= 0.25;
-                this.perfData.highDetailMode = true;
+                this.perfData.targetDetail = Math.min(1.0, this.perfData.adaptiveDetail + 0.1);
+            } else if (fps > 50) {
+                // Increase detail level significantly if FPS is good
+                this.perfData.targetDetail = Math.max(this.perfData.minDetail, 
+                    this.perfData.adaptiveDetail - 0.1);
             }
+            
+            // Gradually approach target detail to avoid sudden changes
+            const detailDiff = this.perfData.targetDetail - this.perfData.adaptiveDetail;
+            this.perfData.adaptiveDetail += detailDiff * 0.3; // Move 30% toward target
         }
         
-        // Determine detail level for this frame
+        // Determine detail level for this frame - force HIGH detail
         // Lower values = more detail (values below 1 = subdivided grid)
         const detailLevel = this.perfData.adaptiveDetail;
         
         // Determine appropriate level for device
         // Calculate base skip factor - smaller values = more triangles
-        const baseSkipFactor = Math.max(1, Math.floor(detailLevel * 4)) / 4;
+        // Use a smaller value (max 4) to ensure we always have enough triangles
+        const baseSkipFactor = Math.max(1, Math.floor(detailLevel * 5)) / 5;
         
-        // Grid size is 65, so we'll use subdivision approach
+        // Grid size is 65, so we'll use fixed high density
         const effectiveGridSize = this.terrainGenerator.gridSize;
         
         // Track triangle counts
@@ -372,10 +387,21 @@ class FractalLandscape {
         }
         this.triangleBatch.length = 0;
         
+        // Use anti-flashing technique: maintain stable positions between frames
+        // Calculate stable wave offset by dampening changes between frames
+        const currentWaveOffset = this.waveOffset;
+        const waveDelta = currentWaveOffset - this.gridOffset.lastWaveOffset;
+        
+        // Only move a percentage of the full wave amount (reduces oscillation)
+        const stableWaveOffset = this.gridOffset.lastWaveOffset + 
+            (waveDelta * this.gridOffset.speedFactor);
+        this.gridOffset.lastWaveOffset = stableWaveOffset;
+        
         // Define a subdivision function to create more detailed areas
         const createSubdividedGrid = (startX, startY, size, detailFactor) => {
             // Base case - create triangles for this cell
-            if (size <= 1 || detailFactor >= 2) {
+            // Reduce the size threshold to force more subdivision
+            if (size <= 1 || detailFactor >= 4) { // Higher threshold to allow more subdivision
                 // Create a quad (2 triangles) for this cell
                 const points = [
                     { x: startX, y: startY },
@@ -384,9 +410,9 @@ class FractalLandscape {
                     { x: startX, y: startY + size }
                 ];
                 
-                // Get wave effect for this cell
+                // Get wave effect for this cell - use stable offset to prevent flashing
                 const cellWaveEffect = this.options.waveIntensity * 
-                    Math.sin((startX + startY) / 5 + this.waveOffset * 3) * 3;
+                    Math.sin((startX + startY) / 5 + stableWaveOffset * 3) * 2;
                 
                 // Get corner data
                 const corners = points.map(p => {
@@ -398,9 +424,9 @@ class FractalLandscape {
                         baseColor, p.x, p.y, this.globalTime, glowIntensity
                     );
                     
-                    // Apply wave effect
-                    const waveX = cellWaveEffect * Math.sin(p.y / 10 + this.waveOffset);
-                    const waveY = cellWaveEffect * Math.cos(p.x / 10 + this.waveOffset);
+                    // Apply wave effect - use stable offset to prevent flashing
+                    const waveX = cellWaveEffect * Math.sin(p.y / 10 + stableWaveOffset);
+                    const waveY = cellWaveEffect * Math.cos(p.x / 10 + stableWaveOffset);
                     const xPos = p.x * pixelWidth + waveX;
                     const yPos = p.y * pixelHeight + waveY;
                     
@@ -428,7 +454,7 @@ class FractalLandscape {
                 return;
             }
             
-            // Check if this is a detail area
+            // Always subdivide more for better detail
             const halfSize = size / 2;
             const centerX = startX + halfSize;
             const centerY = startY + halfSize;
@@ -445,11 +471,11 @@ class FractalLandscape {
             const minHeight = Math.min(nwHeight, neHeight, seHeight, swHeight);
             const heightDiff = maxHeight - minHeight;
             
-            // Check if this is a high detail area
-            const isDetailArea = centerHeight > 0.65 || // High peaks
-                                heightDiff > 0.15;     // Areas with significant height changes
+            // Force more detail areas - lower thresholds
+            const isDetailArea = centerHeight > 0.5 || // Much lower threshold for peaks 
+                               heightDiff > 0.05;    // Much lower threshold for variance
             
-            if (isDetailArea) {
+            if (isDetailArea || size > 3) { // Force subdivision for larger cells
                 detailAreaCount++;
                 // Subdivide further for detail areas
                 const newSize = halfSize;
@@ -469,9 +495,9 @@ class FractalLandscape {
                     { x: startX, y: startY + size }
                 ];
                 
-                // Get wave effect for this cell
+                // Get wave effect for this cell - use stable offset to prevent flashing
                 const cellWaveEffect = this.options.waveIntensity * 
-                    Math.sin((startX + startY) / 5 + this.waveOffset * 3) * 3;
+                    Math.sin((startX + startY) / 5 + stableWaveOffset * 3) * 2;
                 
                 // Get corner data
                 const corners = points.map(p => {
@@ -483,9 +509,9 @@ class FractalLandscape {
                         baseColor, p.x, p.y, this.globalTime, glowIntensity
                     );
                     
-                    // Apply wave effect
-                    const waveX = cellWaveEffect * Math.sin(p.y / 10 + this.waveOffset);
-                    const waveY = cellWaveEffect * Math.cos(p.x / 10 + this.waveOffset);
+                    // Apply wave effect - use stable offset to prevent flashing
+                    const waveX = cellWaveEffect * Math.sin(p.y / 10 + stableWaveOffset);
+                    const waveY = cellWaveEffect * Math.cos(p.x / 10 + stableWaveOffset);
                     const xPos = p.x * pixelWidth + waveX;
                     const yPos = p.y * pixelHeight + waveY;
                     
@@ -513,8 +539,8 @@ class FractalLandscape {
             }
         };
         
-        // Calculate optimal cell size for initial grid
-        const cellSize = Math.max(2, Math.floor(baseSkipFactor * 8));
+        // Calculate optimal cell size for initial grid - use smaller size
+        const cellSize = Math.max(2, Math.floor(baseSkipFactor * 4)); // Reduced from 8 to 4
         
         // Divide terrain into initial grid cells and process each one
         for (let y = 0; y < effectiveGridSize - 1; y += cellSize) {
@@ -537,12 +563,18 @@ class FractalLandscape {
             );
         }
         
+        // Track triangle history for analytics
+        this.perfData.triangleHistory.push(triangleCount);
+        if (this.perfData.triangleHistory.length > 10) {
+            this.perfData.triangleHistory.shift();
+        }
+        
         // Update performance metrics
         this.perfData.triangleCount = triangleCount;
         this.perfData.detailAreas = detailAreaCount;
         this.perfData.renderTime = performance.now() - renderStart;
         
-        // Draw debug information if enabled
+        // Draw debug information
         this.drawDebugInfo();
     }
     
