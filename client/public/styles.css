@@ -53,12 +53,12 @@ header .help-text {
     flex: 1;
     position: relative;
     width: 100%;
-    height: calc(100vh - 190px); /* Reduced height to make room for UI */
+    height: calc(100vh - 210px); /* Reduced height to make room for UI */
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 0 25px rgba(100, 223, 223, 0.3);
     animation: glow 5s infinite alternate;
-    margin-bottom: 80px; /* Increased bottom margin to make room for UI */
+    margin-bottom: 100px; /* Increased bottom margin to make room for UI */
 }
 
 @keyframes glow {
@@ -79,24 +79,26 @@ header .help-text {
 /* Parameter display integrated at bottom */
 .parameter-overlay {
     position: fixed;
-    bottom: 30px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 30px;
+    gap: 15px;
     z-index: 900;
-    background-color: rgba(20, 20, 35, 0.6);
-    padding: 15px 40px;
+    background-color: rgba(20, 20, 35, 0.8);
+    padding: 12px 25px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(100, 223, 223, 0.4);
     transition: all 0.3s ease;
     opacity: 0.9;
     animation: glow-subtle 3s infinite alternate;
-    max-width: 900px;
-    width: calc(100% - 200px); /* Prevents extending beyond viewport */
+    max-width: 800px;
+    width: 90%; /* Use percentage width for better responsiveness */
+    flex-wrap: wrap; /* Allow wrapping for narrow screens */
+    box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .parameter-overlay:hover {
@@ -131,19 +133,20 @@ header .help-text {
 .param-item {
     display: flex;
     align-items: center;
-    padding: 10px 20px;
-    border-radius: 15px;
+    padding: 8px 15px;
+    border-radius: 12px;
     background-color: rgba(20, 20, 35, 0.6);
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
     box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
-    min-width: 180px;
-    max-width: 200px;
-    flex: 1;
-    margin: 0 5px;
+    flex: 1 1 auto;
+    margin: 5px;
     cursor: pointer;
-    height: 50px;
+    height: 40px;
     overflow: hidden;
+    min-width: 160px;
+    max-width: 180px;
+    box-sizing: border-box;
 }
 
 .param-item:hover {
@@ -162,18 +165,19 @@ header .help-text {
     background-color: rgba(100, 223, 223, 0.2);
     color: #64dfdf;
     border-radius: 6px;
-    padding: 4px 6px;
-    font-size: 0.9rem;
+    padding: 3px 5px;
+    font-size: 0.8rem;
     font-weight: bold;
-    margin-right: 10px;
-    min-width: 35px;
-    max-width: 35px;
+    margin-right: 8px;
+    min-width: 30px;
+    max-width: 30px;
     text-align: center;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 30px;
+    height: 26px;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .arrow-left, .arrow-right, .arrow-up, .arrow-down {
@@ -186,29 +190,31 @@ header .help-text {
 }
 
 .param-label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #64dfdf;
     font-weight: 600;
     margin-right: auto;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 80px;
+    max-width: 70px;
+    box-sizing: border-box;
 }
 
 .param-value {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: bold;
     color: white;
     text-shadow: 0 0 10px rgba(100, 223, 223, 0.6);
-    margin-left: 10px;
-    min-width: 45px;
-    max-width: 45px;
+    margin-left: 8px;
+    min-width: 40px;
+    max-width: 40px;
     text-align: right;
     background-color: rgba(100, 223, 223, 0.1);
-    padding: 3px 6px;
+    padding: 3px 5px;
     border-radius: 6px;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 @keyframes pulse-highlight {
@@ -248,59 +254,121 @@ header .help-text {
     color: #f44336;
 }
 
-@media (max-width: 1000px) {
+/* Responsive styles */
+@media (max-width: 1200px) {
     .parameter-overlay {
         width: 95%;
-        gap: 10px;
-        padding: 15px 20px;
+        gap: 12px;
+        padding: 12px 20px;
     }
     
     .param-item {
-        min-width: 160px;
-        max-width: 180px;
-        padding: 10px 12px;
+        min-width: 150px;
+        max-width: 170px;
+        padding: 8px 12px;
     }
     
     .param-label {
         max-width: 60px;
     }
+}
+
+@media (max-width: 900px) {
+    .parameter-overlay {
+        width: 95%;
+        gap: 8px;
+        padding: 10px 15px;
+    }
+    
+    .param-item {
+        min-width: 140px;
+        max-width: 160px;
+        padding: 7px 10px;
+        height: 38px;
+    }
+    
+    .param-label {
+        max-width: 55px;
+        font-size: 0.8rem;
+    }
     
     .key-hint {
-        min-width: 30px;
-        max-width: 30px;
-        margin-right: 8px;
+        min-width: 28px;
+        max-width: 28px;
+        margin-right: 6px;
+        font-size: 0.75rem;
+        height: 24px;
     }
     
     .param-value {
-        min-width: 40px;
-        max-width: 40px;
+        min-width: 38px;
+        max-width: 38px;
+        font-size: 0.9rem;
     }
 }
 
 @media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .control-group {
-        width: 100%;
-        max-width: 300px;
-    }
-    
     h1 {
         font-size: 2.2rem;
     }
     
     .parameter-overlay {
-        gap: 8px;
-        padding: 12px 15px;
+        width: calc(100% - 20px);
+        gap: 6px;
+        padding: 8px 12px;
         flex-wrap: wrap;
         justify-content: center;
+        bottom: 15px;
     }
     
     .param-item {
-        margin-bottom: 8px;
+        min-width: 130px;
+        max-width: 150px;
+        padding: 6px 8px;
+        height: 36px;
+        margin: 4px;
+    }
+    
+    .canvas-container {
+        height: calc(100vh - 240px); /* Ensure more space at bottom for controls */
+        margin-bottom: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .parameter-overlay {
+        width: calc(100% - 16px);
+        flex-direction: column;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .param-item {
+        width: 100%;
+        max-width: none;
+        margin: 3px 0;
+    }
+    
+    .param-label {
+        max-width: 80px;
+    }
+    
+    .canvas-container {
+        height: calc(100vh - 280px);
+        margin-bottom: 160px;
+    }
+    
+    header p {
+        font-size: 0.9rem;
+    }
+    
+    header .help-text {
+        font-size: 0.8rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
     }
 }
 
