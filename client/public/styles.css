@@ -85,17 +85,19 @@ header .help-text {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 20px;
+    gap: 30px;
     z-index: 900;
     background-color: rgba(20, 20, 35, 0.6);
-    padding: 12px 30px;
+    padding: 15px 40px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(100, 223, 223, 0.4);
     transition: all 0.3s ease;
     opacity: 0.9;
     animation: glow-subtle 3s infinite alternate;
-    min-width: 800px;
+    min-width: 900px;
+    max-width: 1200px;
+    width: 80%;
 }
 
 .parameter-overlay:hover {
@@ -130,16 +132,18 @@ header .help-text {
 .param-item {
     display: flex;
     align-items: center;
-    padding: 8px 20px;
+    padding: 10px 25px;
     border-radius: 15px;
     background-color: rgba(20, 20, 35, 0.6);
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
     box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
-    min-width: 160px;
+    min-width: 200px;
+    max-width: 280px;
     flex: 1;
-    margin: 0 3px;
+    margin: 0 5px;
     cursor: pointer;
+    height: 50px;
 }
 
 .param-item:hover {
@@ -157,20 +161,34 @@ header .help-text {
 .key-hint {
     background-color: rgba(100, 223, 223, 0.2);
     color: #64dfdf;
-    border-radius: 4px;
-    padding: 3px 6px;
-    font-size: 0.8rem;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
     font-weight: bold;
-    margin-right: 12px;
-    min-width: 30px;
+    margin-right: 15px;
+    min-width: 40px;
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 30px;
+}
+
+.arrow-left, .arrow-right, .arrow-up, .arrow-down {
+    display: inline-block;
+    padding: 0 4px;
+}
+
+.arrow-left, .arrow-up {
+    border-right: 1px solid rgba(100, 223, 223, 0.3);
 }
 
 .param-label {
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #64dfdf;
     font-weight: 600;
     margin-right: auto;
+    white-space: nowrap;
 }
 
 .param-value {
@@ -178,9 +196,12 @@ header .help-text {
     font-weight: bold;
     color: white;
     text-shadow: 0 0 10px rgba(100, 223, 223, 0.6);
-    margin-left: 15px;
+    margin-left: 20px;
     min-width: 60px;
     text-align: right;
+    background-color: rgba(100, 223, 223, 0.1);
+    padding: 3px 10px;
+    border-radius: 6px;
 }
 
 @keyframes pulse-highlight {
