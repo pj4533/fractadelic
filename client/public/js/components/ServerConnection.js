@@ -68,9 +68,6 @@ class ServerConnection {
             this.fractal.updateOptions({
                 palette: state.palette,
                 seedPoints: state.seedPoints,
-                waveIntensity: state.waveIntensity ?? this.uiManager.controls.waveIntensity,
-                glowIntensity: state.glowIntensity ?? this.uiManager.controls.glowIntensity,
-                particleDensity: state.particleDensity ?? this.uiManager.controls.particleDensity
             });
             
             // Update UI controls

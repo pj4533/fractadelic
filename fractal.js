@@ -25,21 +25,9 @@ class FractalLandscape {
             this.options.roughness, 
             this.options.seedPoints
         );
-        this.particleSystem = new ParticleSystem(
-            this.terrainGenerator,
-            this.colorManager
-        );
-        this.rippleEffect = new RippleEffect(
-            this.width,
-            this.height,
-            this.colorManager
-        );
         
         // Initialize the terrain
         this.terrainGenerator.initTerrain();
-        
-        // Initialize particles
-        this.particleSystem.initializeParticles(this.width, this.height);
         
         // Start continuous animation loop
         this.startContinuousAnimation();
@@ -66,12 +54,6 @@ class FractalLandscape {
             this.lastAutoEvolutionTime = timestamp;
         }
         
-        // Update particles
-        this.particleSystem.updateParticles(deltaTime, this.width, this.height);
-        
-        // Update ripples
-        this.rippleEffect.updateRipples(deltaTime);
-        
         // Render
         this.render();
         
@@ -79,20 +61,10 @@ class FractalLandscape {
         this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
     }
     
-    // Add a seed point with ripple effect
+    // Add a seed point
     addSeedPoint(x, y, value) {
         // Add to terrain generator
         this.terrainGenerator.addSeedPoint(x, y, value);
-        
-        // Add a ripple effect at the seed point
-        this.rippleEffect.addRipple(x, y, value);
-        
-        // Add a burst of particles
-        this.particleSystem.addParticleBurst(
-            x * this.width, 
-            y * this.height, 
-            value
-        );
     }
     
     // Update options with fast transition
@@ -109,14 +81,6 @@ class FractalLandscape {
         if (options.roughness !== undefined) {
             this.terrainGenerator.setRoughness(options.roughness);
             this.terrainGenerator.initTerrain();
-            
-            // Add a few ripples for visual interest
-            for (let i = 0; i < 3; i++) {
-                const x = Math.random();
-                const y = Math.random();
-                const value = 0.5 + Math.random() * 0.5;
-                this.rippleEffect.addRipple(x, y, value);
-            }
         }
     }
     
@@ -124,22 +88,6 @@ class FractalLandscape {
     evolve(rate = 0.02) {  // Increased rate for more visible changes
         // Apply evolution to the map
         this.terrainGenerator.evolve(rate);
-        
-        // Add random ripples for visual effect
-        for (let i = 0; i < 5; i++) {
-            const x = Math.random();
-            const y = Math.random();
-            const value = Math.random();
-            this.rippleEffect.addRipple(x, y, value);
-        }
-        
-        // Renew particles to match new terrain
-        this.particleSystem.initializeParticles(this.width, this.height);
-    }
-    
-    // Add a ripple effect at the specified location
-    addRipple(x, y, value) {
-        this.rippleEffect.addRipple(x, y, value);
     }
     
     // Render the terrain to the canvas
@@ -162,12 +110,6 @@ class FractalLandscape {
         
         // Render terrain
         this.renderTerrain(pixelWidth, pixelHeight);
-        
-        // Render ripples
-        this.renderRipples();
-        
-        // Render particles
-        this.renderParticles();
     }
     
     // Render terrain
@@ -196,63 +138,6 @@ class FractalLandscape {
                 );
                 this.ctx.fill();
             }
-        }
-    }
-    
-    // Render ripples
-    renderRipples() {
-        for (const ripple of this.rippleEffect.ripples) {
-            this.ctx.strokeStyle = `${ripple.color}${Math.round(ripple.opacity * 255).toString(16).padStart(2,'0')}`;
-            this.ctx.lineWidth = ripple.thickness;
-            this.ctx.beginPath();
-            this.ctx.arc(ripple.x, ripple.y, ripple.currentRadius, 0, Math.PI * 2);
-            this.ctx.stroke();
-        }
-    }
-    
-    // Render particles
-    renderParticles() {
-        for (const p of this.particleSystem.particles) {
-            // Calculate opacity based on age
-            const ageOpacity = 1 - (p.age / p.lifetime);
-            
-            // Get grid position and height
-            const gridX = Math.floor(p.x / this.width * (this.terrainGenerator.gridSize - 1));
-            const gridY = Math.floor(p.y / this.height * (this.terrainGenerator.gridSize - 1));
-            const height = this.terrainGenerator.getValue(gridX, gridY);
-            
-            // Get particle color from the particle system
-            const particleColor = this.particleSystem.getParticleColor(
-                p, height, ageOpacity
-            );
-            
-            // Draw glowing particle
-            const radius = p.burstParticle ? 
-                p.size * (1 - p.age / p.lifetime) * 3 : 
-                p.size;
-                
-            this.ctx.save();
-            
-            // Draw glow
-            const gradient = this.ctx.createRadialGradient(
-                p.x, p.y, 0,
-                p.x, p.y, radius * 2
-            );
-            gradient.addColorStop(0, particleColor);
-            gradient.addColorStop(1, `${particleColor.substring(0,7)}00`); // Transparent
-            
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, radius * 2, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Draw particle core
-            this.ctx.fillStyle = particleColor;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            this.ctx.restore();
         }
     }
 }
@@ -493,180 +378,5 @@ class TerrainGenerator {
         }
         // Ensure value is between 0 and 1
         this.terrainMap[y * this.gridSize + x] = Math.max(0, Math.min(1, value));
-    }
-}
-
-// Manages particle effects
-class ParticleSystem {
-    constructor(terrainGenerator, colorManager) {
-        this.terrainGenerator = terrainGenerator;
-        this.colorManager = colorManager;
-        this.particles = [];
-        this.maxParticles = 100;
-    }
-    
-    // Create particles based on terrain
-    initializeParticles(width, height) {
-        this.particles = [];
-        
-        for (let i = 0; i < this.maxParticles; i++) {
-            this.addRandomParticle(width, height);
-        }
-    }
-    
-    // Add a particle at a random position
-    addRandomParticle(width, height) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        
-        // Find the height at this position
-        const gridX = Math.floor(x / width * (this.terrainGenerator.gridSize - 1));
-        const gridY = Math.floor(y / height * (this.terrainGenerator.gridSize - 1));
-        const terrainHeight = this.terrainGenerator.getValue(gridX, gridY);
-        
-        // Higher areas get brighter particles
-        const brightness = 0.7 + terrainHeight * 0.3;
-        const size = 1 + terrainHeight * 3;
-        const speed = 0.5 + terrainHeight * 2;
-        
-        this.particles.push({
-            x, y, 
-            size,
-            speed,
-            brightness,
-            direction: Math.random() * Math.PI * 2,
-            lifetime: 10000 + Math.random() * 15000,
-            age: 0
-        });
-    }
-    
-    // Update all particles
-    updateParticles(deltaTime, width, height) {
-        // Update existing particles
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            
-            // Update age
-            p.age += deltaTime;
-            if (p.age > p.lifetime) {
-                // Remove old particles
-                this.particles.splice(i, 1);
-                continue;
-            }
-            
-            // Move the particle
-            p.x += Math.cos(p.direction) * p.speed * (deltaTime / 100);
-            p.y += Math.sin(p.direction) * p.speed * (deltaTime / 100);
-            
-            // Change direction slightly
-            p.direction += (Math.random() - 0.5) * 0.2;
-            
-            // Check boundaries
-            if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
-                // Bounce off edges
-                if (p.x < 0) p.direction = Math.PI - p.direction;
-                if (p.x > width) p.direction = Math.PI - p.direction;
-                if (p.y < 0) p.direction = -p.direction;
-                if (p.y > height) p.direction = -p.direction;
-                
-                // Ensure it's inside
-                p.x = Math.max(0, Math.min(width, p.x));
-                p.y = Math.max(0, Math.min(height, p.y));
-            }
-        }
-        
-        // Add new particles if needed
-        while (this.particles.length < this.maxParticles) {
-            this.addRandomParticle(width, height);
-        }
-    }
-    
-    // Add a burst of particles
-    addParticleBurst(x, y, intensity) {
-        const numParticles = 20 + Math.floor(intensity * 30);
-        
-        for (let i = 0; i < numParticles; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 1 + Math.random() * 5;
-            const distance = 20 + Math.random() * 50;
-            const size = 1 + Math.random() * 3;
-            
-            const particleX = x + Math.cos(angle) * Math.random() * 10;
-            const particleY = y + Math.sin(angle) * Math.random() * 10;
-            
-            this.particles.push({
-                x: particleX, 
-                y: particleY,
-                size,
-                speed,
-                brightness: 0.8 + Math.random() * 0.2,
-                direction: angle,
-                lifetime: 1000 + Math.random() * 3000,
-                age: 0,
-                burstParticle: true
-            });
-        }
-    }
-    
-    // Get particle color
-    getParticleColor(particle, terrainHeight, ageOpacity) {
-        if (particle.burstParticle) {
-            // Burst particles use a bright white-to-palette color
-            const alpha = Math.round(ageOpacity * 255).toString(16).padStart(2,'0');
-            return `#ffffff${alpha}`;
-        } else {
-            // Normal particles use terrain height color
-            const color = this.colorManager.getHeightColor(terrainHeight, true);
-            const alpha = Math.round(ageOpacity * particle.brightness * 255).toString(16).padStart(2,'0');
-            return `${color}${alpha}`;
-        }
-    }
-}
-
-// Manages ripple effects
-class RippleEffect {
-    constructor(width, height, colorManager) {
-        this.width = width;
-        this.height = height;
-        this.colorManager = colorManager;
-        this.ripples = [];
-    }
-    
-    // Create a ripple effect 
-    addRipple(x, y, value) {
-        const ripple = {
-            x: x * this.width,
-            y: y * this.height,
-            maxRadius: Math.max(this.width, this.height) * 0.4,
-            currentRadius: 0,
-            thickness: 8,
-            opacity: 1,
-            speed: 0.15,
-            color: this.colorManager.getHeightColor(value)
-        };
-        
-        this.ripples.push(ripple);
-    }
-    
-    // Update ripples
-    updateRipples(deltaTime) {
-        for (let i = this.ripples.length - 1; i >= 0; i--) {
-            const ripple = this.ripples[i];
-            
-            // Expand ripple
-            ripple.currentRadius += ripple.speed * deltaTime;
-            ripple.opacity = 1 - (ripple.currentRadius / ripple.maxRadius);
-            
-            // Remove ripples that have expanded fully
-            if (ripple.currentRadius >= ripple.maxRadius) {
-                this.ripples.splice(i, 1);
-            }
-        }
-    }
-    
-    // Update width and height
-    updateDimensions(width, height) {
-        this.width = width;
-        this.height = height;
     }
 }

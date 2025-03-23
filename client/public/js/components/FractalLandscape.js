@@ -74,13 +74,12 @@ class FractalLandscape {
     
     // Update animation state from server
     updateAnimationState(animState) {
-        const { globalTime, waveOffset } = this.animationManager.getAnimationState();
+        const { globalTime } = this.animationManager.getAnimationState();
         
         // Update sync manager with new state
         this.syncManager.updateAnimationState(
             animState,
             globalTime,
-            waveOffset,
             this.colorManager
         );
         
@@ -110,7 +109,6 @@ class FractalLandscape {
         // Render terrain
         const { triangleCount, detailAreaCount } = this.renderer.renderTerrain(
             globalTime,
-            0, // No wave offset
             this.options, 
             detailLevel
         );

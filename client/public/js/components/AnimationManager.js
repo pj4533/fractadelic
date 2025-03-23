@@ -44,7 +44,6 @@ class AnimationManager {
             const { newGlobalTime } = this.fractalLandscape.syncManager.applyServerSync(
                 deltaTime, 
                 this.globalTime, 
-                0, // No wave offset
                 this.fractalLandscape.colorManager
             );
             

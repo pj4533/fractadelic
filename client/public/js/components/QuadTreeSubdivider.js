@@ -16,7 +16,7 @@ class QuadTreeSubdivider {
     }
     
     // Process the terrain with quad tree subdivision
-    subdivide(effectiveGridSize, cellSize, baseSkipFactor, pixelWidth, pixelHeight, globalTime, stableWaveOffset, options) {
+    subdivide(effectiveGridSize, cellSize, baseSkipFactor, pixelWidth, pixelHeight, globalTime, options) {
         this.reset();
         
         // Divide terrain into initial grid cells and process each one
@@ -27,7 +27,7 @@ class QuadTreeSubdivider {
                 this.createSubdividedGrid(
                     x, y, size, baseSkipFactor, 
                     pixelWidth, pixelHeight, 
-                    globalTime, stableWaveOffset, options
+                    globalTime, options
                 );
             }
         }
@@ -43,14 +43,14 @@ class QuadTreeSubdivider {
     }
     
     // Define a subdivision function to create more detailed areas
-    createSubdividedGrid(startX, startY, size, detailFactor, pixelWidth, pixelHeight, globalTime, stableWaveOffset, options) {
+    createSubdividedGrid(startX, startY, size, detailFactor, pixelWidth, pixelHeight, globalTime, options) {
         // Base case - create triangles for this cell
         // Use absolute minimum size to force maximum subdivision
         if (size <= 1 || detailFactor >= 5) { // Increased threshold to allow even more subdivision
             this.createTrianglesForQuad(
                 startX, startY, size, 
                 pixelWidth, pixelHeight, 
-                globalTime, stableWaveOffset, options
+                globalTime, options
             );
             return;
         }
@@ -86,28 +86,28 @@ class QuadTreeSubdivider {
             // Recursively subdivide into 4 quads
             this.createSubdividedGrid(startX, startY, newSize, newDetail, 
                                   pixelWidth, pixelHeight, 
-                                  globalTime, stableWaveOffset, options);
+                                  globalTime, options);
             this.createSubdividedGrid(startX + newSize, startY, newSize, newDetail, 
                                   pixelWidth, pixelHeight, 
-                                  globalTime, stableWaveOffset, options);
+                                  globalTime, options);
             this.createSubdividedGrid(startX, startY + newSize, newSize, newDetail, 
                                   pixelWidth, pixelHeight, 
-                                  globalTime, stableWaveOffset, options);
+                                  globalTime, options);
             this.createSubdividedGrid(startX + newSize, startY + newSize, newSize, newDetail, 
                                   pixelWidth, pixelHeight, 
-                                  globalTime, stableWaveOffset, options);
+                                  globalTime, options);
         } else {
             // Just create triangles for this cell (similar to base case)
             this.createTrianglesForQuad(
                 startX, startY, size, 
                 pixelWidth, pixelHeight, 
-                globalTime, stableWaveOffset, options
+                globalTime, options
             );
         }
     }
     
     // Create triangles for a quad (shared by both base case and non-detail areas)
-    createTrianglesForQuad(startX, startY, size, pixelWidth, pixelHeight, globalTime, stableWaveOffset, options) {
+    createTrianglesForQuad(startX, startY, size, pixelWidth, pixelHeight, globalTime, options) {
         const points = [
             { x: startX, y: startY },
             { x: startX + size, y: startY },

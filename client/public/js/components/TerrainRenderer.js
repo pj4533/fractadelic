@@ -17,7 +17,7 @@ class TerrainRenderer {
     }
     
     // Render the terrain with optimized mesh
-    renderTerrain(globalTime, waveOffset, options, detailLevel) {
+    renderTerrain(globalTime, options, detailLevel) {
         // Calculate pixel size
         const pixelWidth = this.width / (this.terrainGenerator.gridSize - 1);
         const pixelHeight = this.height / (this.terrainGenerator.gridSize - 1);
@@ -37,8 +37,7 @@ class TerrainRenderer {
                 baseSkipFactor, 
                 pixelWidth, 
                 pixelHeight, 
-                globalTime, 
-                0, // No wave offset 
+                globalTime,
                 options
             );
         

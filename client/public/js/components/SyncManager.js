@@ -12,7 +12,7 @@ class SyncManager {
     }
     
     // Update animation state from server
-    updateAnimationState(animState, globalTime, waveOffset, colorManager) {
+    updateAnimationState(animState, globalTime, colorManager) {
         if (!this.useServerSync) return;
         
         // Store the shared random seed for deterministic random operations
@@ -77,7 +77,7 @@ class SyncManager {
     }
     
     // Apply server-driven animation parameters in local animation loop
-    applyServerSync(deltaTime, globalTimeRef, waveOffsetRef, colorManager) {
+    applyServerSync(deltaTime, globalTimeRef, colorManager) {
         if (!this.useServerSync || !this.syncData) return { newGlobalTime: globalTimeRef };
         
         // Convert deltaTime to seconds
