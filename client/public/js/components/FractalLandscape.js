@@ -445,8 +445,8 @@ class FractalLandscape {
         
         // Determine appropriate level for device
         // Calculate base skip factor - smaller values = more triangles
-        // Use a smaller value (max 4) to ensure we always have enough triangles
-        const baseSkipFactor = Math.max(1, Math.floor(detailLevel * 5)) / 5;
+        // Use an even smaller value to push for more detail
+        const baseSkipFactor = Math.max(0.5, Math.floor(detailLevel * 4)) / 5;
         
         // Grid size is 65, so we'll use fixed high density
         const effectiveGridSize = this.terrainGenerator.gridSize;
@@ -474,8 +474,8 @@ class FractalLandscape {
         // Define a subdivision function to create more detailed areas
         const createSubdividedGrid = (startX, startY, size, detailFactor) => {
             // Base case - create triangles for this cell
-            // Reduce the size threshold to force more subdivision
-            if (size <= 1 || detailFactor >= 4) { // Higher threshold to allow more subdivision
+            // Use absolute minimum size to force maximum subdivision
+            if (size <= 1 || detailFactor >= 5) { // Increased threshold to allow even more subdivision
                 // Create a quad (2 triangles) for this cell
                 const points = [
                     { x: startX, y: startY },
@@ -545,11 +545,12 @@ class FractalLandscape {
             const minHeight = Math.min(nwHeight, neHeight, seHeight, swHeight);
             const heightDiff = maxHeight - minHeight;
             
-            // Force more detail areas - lower thresholds
-            const isDetailArea = centerHeight > 0.5 || // Much lower threshold for peaks 
-                               heightDiff > 0.05;    // Much lower threshold for variance
+            // Force more detail areas - MUCH more aggressive thresholds
+            const isDetailArea = centerHeight > 0.3 || // Extremely low threshold for peaks 
+                               heightDiff > 0.02 ||  // Extremely low threshold for variance
+                               size > 2;              // Force subdivision for all cells larger than 2
             
-            if (isDetailArea || size > 3) { // Force subdivision for larger cells
+            if (isDetailArea) { // Always subdivide if it's a detail area
                 detailAreaCount++;
                 // Subdivide further for detail areas
                 const newSize = halfSize;
@@ -613,8 +614,8 @@ class FractalLandscape {
             }
         };
         
-        // Calculate optimal cell size for initial grid - use smaller size
-        const cellSize = Math.max(2, Math.floor(baseSkipFactor * 4)); // Reduced from 8 to 4
+        // Calculate optimal cell size for initial grid - use much smaller size for higher detail
+        const cellSize = Math.max(1, Math.floor(baseSkipFactor * 3)); // Reduced to push for more triangles
         
         // Divide terrain into initial grid cells and process each one
         for (let y = 0; y < effectiveGridSize - 1; y += cellSize) {
