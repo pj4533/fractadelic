@@ -9,28 +9,35 @@
 <body>
     <div class="container">
         <div class="parameter-overlay">
-            <div class="param-item" data-key="p">
-                <div class="key-hint">P</div>
-                <div class="param-label">Palette</div>
-                <div id="palette-value" class="param-value">cosmic</div>
+            <div class="param-group">
+                <div class="param-item" data-key="p">
+                    <div class="key-hint">P</div>
+                    <div class="param-label">Palette</div>
+                    <div id="palette-value" class="param-value">cosmic</div>
+                </div>
+                
+                <div class="param-item" data-key="←/→">
+                    <div class="key-hint"><span class="arrow-left">←</span><span class="arrow-right">→</span></div>
+                    <div class="param-label">Wave Flow</div>
+                    <div id="wave-value" class="param-value">0.50</div>
+                </div>
+                
+                <div class="param-item" data-key="↑/↓">
+                    <div class="key-hint"><span class="arrow-up">↑</span><span class="arrow-down">↓</span></div>
+                    <div class="param-label">Glow</div>
+                    <div id="glow-value" class="param-value">0.50</div>
+                </div>
+                
+                <div class="param-item" data-key="+/-">
+                    <div class="key-hint"><span class="arrow-left">+</span><span class="arrow-right">-</span></div>
+                    <div class="param-label">Particles</div>
+                    <div id="particles-value" class="param-value">0.50</div>
+                </div>
             </div>
             
-            <div class="param-item" data-key="←/→">
-                <div class="key-hint"><span class="arrow-left">←</span><span class="arrow-right">→</span></div>
-                <div class="param-label">Wave Flow</div>
-                <div id="wave-value" class="param-value">0.50</div>
-            </div>
-            
-            <div class="param-item" data-key="↑/↓">
-                <div class="key-hint"><span class="arrow-up">↑</span><span class="arrow-down">↓</span></div>
-                <div class="param-label">Glow</div>
-                <div id="glow-value" class="param-value">0.50</div>
-            </div>
-            
-            <div class="param-item" data-key="+/-">
-                <div class="key-hint"><span class="arrow-left">+</span><span class="arrow-right">-</span></div>
-                <div class="param-label">Particles</div>
-                <div id="particles-value" class="param-value">0.50</div>
+            <div class="status-info">
+                <span id="activeUsers">1 user online</span>
+                <div id="server-status" class="server-status">Connected</div>
             </div>
         </div>
         
@@ -39,11 +46,6 @@
             <p>Create evolving fractal landscapes together in real-time</p>
             <p class="help-text">Click/right-click parameters to change or use keyboard shortcuts</p>
         </header>
-        
-        <div class="status-overlay">
-            <span id="activeUsers">1 user online</span>
-            <div id="server-status" class="server-status">Connected</div>
-        </div>
         
         <div class="canvas-container">
             <canvas id="fractalCanvas"></canvas>
