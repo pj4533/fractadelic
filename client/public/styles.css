@@ -110,8 +110,6 @@ header .help-text {
     padding-bottom: 5px; /* Add padding for scrollbar */
 }
 
-/* Removed hover effect animation */
-
 .status-info {
     display: flex;
     flex-direction: row;
@@ -210,18 +208,11 @@ header .help-text {
     box-sizing: border-box;
 }
 
-/* Animations removed for simplicity */
-
 .user-info {
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
     color: #a0e8e8;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.7; }
-    100% { opacity: 1; }
 }
 
 .server-status {
@@ -253,8 +244,6 @@ header .help-text {
 .server-status.disconnected::before {
     color: #f44336;
 }
-
-/* Animation removed for simplicity */
 
 /* Responsive styles */
 @media (max-width: 1200px) {
@@ -417,8 +406,6 @@ header .help-text {
     background: rgba(40, 40, 55, 0.9);
 }
 
-/* Float animation removed for simplicity */
-
 /* Keyboard controls UI */
 .key-feedback {
     position: fixed;
@@ -442,12 +429,3 @@ header .help-text {
     margin-right: 6px;
     font-weight: normal;
 }
-
-.control-button.active {
-    transform: scale(0.9);
-    background-color: rgba(100, 223, 223, 0.3);
-}
-
-/* Keyboard help has been removed - controls are shown directly on screen */
-
-/* FadeIn animation removed for simplicity */

@@ -45,9 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             wave: document.getElementById('wave-value'),
             glow: document.getElementById('glow-value'),
             particles: document.getElementById('particles-value'),
-            roughness: null,  // These are older parameters that might not exist in the UI
-            evolution: null,
-            seeds: null
+            // Removed unused parameter references
         }
     };
     
@@ -118,8 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('newSeed', (seedPoint) => {
         console.log(`Received new seed point from another user:`, seedPoint);
         fractal.addSeedPoint(seedPoint.x, seedPoint.y, seedPoint.value);
-        controls.seedCount++;
-        updateParameterDisplay('seeds', controls.seedCount);
+        // Seed count tracking removed
     });
     
     // Handle evolution updates from server
@@ -158,17 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let element;
         
         switch(param) {
-            case 'roughness':
-                element = controls.elements.roughness;
-                break;
             case 'palette':
                 element = controls.elements.palette;
-                break;
-            case 'evolution':
-                element = controls.elements.evolution;
-                break;
-            case 'seeds':
-                element = controls.elements.seeds;
                 break;
             case 'wave':
                 element = controls.elements.wave;
@@ -217,9 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fractal.addRipple(x, y, value * 0.8);
         }, 100);
         
-        // Increment seed count and update display
-        controls.seedCount++;
-        updateParameterDisplay('seeds', controls.seedCount);
+        // Seed count tracking removed
         
         // Send to server
         console.log(`Sending new seed point to server: x=${x.toFixed(2)}, y=${y.toFixed(2)}, value=${value.toFixed(2)}`);
@@ -528,7 +514,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 2000);
         }
     }, 5000);
-    
-    // No keyboard help needed - controls are shown directly on screen
     
 });
