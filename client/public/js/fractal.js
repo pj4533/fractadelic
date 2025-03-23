@@ -128,7 +128,7 @@ class FractalLandscape {
                 for (let i = 0; i < 5; i++) {
                     const x = Math.random();
                     const y = Math.random();
-                    this.addParticleBurst(x * this.width, y * this.height, 0.8);
+                    this.particleSystem.addParticleBurst(x * this.width, y * this.height, 0.8);
                 }
             }
         }

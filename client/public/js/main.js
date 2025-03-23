@@ -44,7 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
             palette: document.getElementById('palette-value'),
             wave: document.getElementById('wave-value'),
             glow: document.getElementById('glow-value'),
-            particles: document.getElementById('particles-value')
+            particles: document.getElementById('particles-value'),
+            roughness: null,  // These are older parameters that might not exist in the UI
+            evolution: null,
+            seeds: null
         }
     };
     
@@ -166,6 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'seeds':
                 element = controls.elements.seeds;
+                break;
+            case 'wave':
+                element = controls.elements.wave;
+                break;
+            case 'glow':
+                element = controls.elements.glow;
+                break;
+            case 'particles':
+                element = controls.elements.particles;
                 break;
             default:
                 return;
