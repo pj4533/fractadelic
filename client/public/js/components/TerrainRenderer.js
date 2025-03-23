@@ -27,15 +27,16 @@ class TerrainRenderer {
         // Add an upper bound to detail level to prevent issues when it exceeds 1.0
         // Make detail level scale have stronger effect on skip factor for faster performance changes
         const clampedDetailLevel = Math.min(1.0, detailLevel);
-        // Use a more conservative calculation that balances detail with performance
-        // Avoid extreme values at both ends to prevent rendering artifacts
-        // Scale between 0.2 (high detail) to 1.2 (low detail) - narrower safer range
-        const baseSkipFactor = 0.2 + (clampedDetailLevel * 1.0);
+        // Use a more dramatic scaling that creates visible differences in triangle size
+        // Low detail = larger triangles, high detail = smaller triangles
+        // Scale between 0.2 (high detail) to 2.0 (low detail) - wider range for better visibility 
+        const baseSkipFactor = 0.2 + (clampedDetailLevel * 1.8);
         
         // With larger gridSize, we need slightly larger cell size for initial grid
-        // Apply safety checks to ensure cellSize is a valid, reasonable integer
+        // Apply safety checks but allow for larger cell sizes to create more visible differences
+        // This allows the baseSkipFactor to have a more dramatic effect on triangle size
         const rawCellSize = Math.floor(baseSkipFactor * 4);
-        const cellSize = isNaN(rawCellSize) ? 2 : Math.max(2, Math.min(8, rawCellSize)); // Limit both min and max
+        const cellSize = isNaN(rawCellSize) ? 2 : Math.max(2, Math.min(12, rawCellSize)); // Increased maximum
         
         // Use the QuadTreeSubdivider to create the triangle mesh
         const { triangleBatch, triangleCount, detailAreaCount } = 
