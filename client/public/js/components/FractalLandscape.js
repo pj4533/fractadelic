@@ -113,7 +113,6 @@ class FractalLandscape {
         
         // Update performance metrics
         this.performanceMonitor.updateMetrics(triangleCount, detailAreaCount);
-        this.performanceMonitor.updateTriangleHistory(triangleCount);
         
         // Draw debug info
         this.performanceMonitor.drawDebugInfo(this.renderer.ctx);
