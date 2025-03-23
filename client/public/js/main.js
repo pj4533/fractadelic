@@ -5,14 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
     
-    // Initialize fractal landscape
+    // Initialize fractal landscape with vibrant cosmic theme
     const fractal = new FractalLandscape(canvas, {
         roughness: 0.5,
-        palette: 'earth'
+        palette: 'cosmic'
     });
-    
-    // Render initial landscape
-    fractal.render();
     
     // Server status element
     const serverStatusElement = document.getElementById('server-status');
@@ -56,41 +53,38 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Handle incoming state from server
     socket.on('state', (state) => {
-        // Update local fractal with server state
+        // Update UI controls to match
+        document.getElementById('roughness').value = state.roughness;
+        document.getElementById('colorPalette').value = state.palette;
+        
+        // Update local fractal with server state (will trigger animation)
         fractal.updateOptions({
             roughness: state.roughness,
             palette: state.palette,
             seedPoints: state.seedPoints
         });
-        
-        // Update UI controls to match
-        document.getElementById('roughness').value = state.roughness;
-        document.getElementById('colorPalette').value = state.palette;
-        
-        // Render updated landscape
-        fractal.render();
     });
     
     // Handle incoming seed points from other users
     socket.on('newSeed', (seedPoint) => {
         fractal.addSeedPoint(seedPoint.x, seedPoint.y, seedPoint.value);
-        fractal.render();
     });
     
     // Handle evolution updates from server
     socket.on('evolve', () => {
         fractal.evolve(0.01);
-        fractal.render();
     });
     
-    // UI control event listeners
+    // UI control event listeners with real-time updates
     const roughnessSlider = document.getElementById('roughness');
-    roughnessSlider.addEventListener('change', () => {
+    roughnessSlider.addEventListener('input', () => {
         const roughness = parseFloat(roughnessSlider.value);
         fractal.updateOptions({ roughness });
-        fractal.render();
-        
-        // Send update to server
+    });
+    
+    // Only send to server when done changing (for bandwidth efficiency)
+    roughnessSlider.addEventListener('change', () => {
+        const roughness = parseFloat(roughnessSlider.value);
         socket.emit('updateOption', { roughness });
     });
     
@@ -98,7 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
     colorPalette.addEventListener('change', () => {
         const palette = colorPalette.value;
         fractal.updateOptions({ palette });
-        fractal.render();
+        
+        // Add some ripples for visual effect on palette change
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const x = Math.random();
+                const y = Math.random();
+                const value = 0.5 + Math.random() * 0.5;
+                fractal.addRipple(x, y, value);
+            }, i * 100);
+        }
         
         // Send update to server
         socket.emit('updateOption', { palette });
@@ -106,8 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const addSeedButton = document.getElementById('addSeed');
     addSeedButton.addEventListener('click', () => {
-        // Change cursor to indicate seed placing mode
+        // Change cursor to indicate seed placing mode with glow effect
         canvas.style.cursor = 'crosshair';
+        canvas.classList.add('seed-mode');
+        
+        // Add a visual hint
+        const hint = document.createElement('div');
+        hint.className = 'seed-hint';
+        hint.textContent = 'Click anywhere to add a seed point';
+        document.body.appendChild(hint);
         
         // One-time event listener for canvas click
         const handleCanvasClick = (e) => {
@@ -119,15 +129,23 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create a random height value between 0.4 and 1.0
             const value = 0.4 + Math.random() * 0.6;
             
-            // Add seed point locally
+            // Add seed point locally with particle burst and ripple effect
             fractal.addSeedPoint(x, y, value);
-            fractal.render();
+            
+            // Add extra ripples around the seed point for emphasis
+            setTimeout(() => {
+                fractal.addRipple(x, y, value * 0.8);
+            }, 100);
             
             // Send to server
             socket.emit('addSeed', { x, y, value });
             
-            // Reset cursor
+            // Reset cursor and remove hint
             canvas.style.cursor = 'default';
+            canvas.classList.remove('seed-mode');
+            if (hint.parentNode) {
+                document.body.removeChild(hint);
+            }
             
             // Remove this event listener
             canvas.removeEventListener('click', handleCanvasClick);
@@ -146,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
-        fractal.render();
     });
     
     // Disconnect handler
@@ -161,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Start local evolution
             setInterval(() => {
                 fractal.evolve(0.01);
-                fractal.render();
             }, 2000);
         }
     }, 5000);

@@ -22,7 +22,7 @@ const io = new Server(server);
 // Global state
 const state = {
     roughness: 0.5,
-    palette: 'earth',
+    palette: 'cosmic',
     seedPoints: [],
     evolveSpeed: 5
 };
