@@ -22,6 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeUsers = 1;
     const activeUsersElement = document.getElementById('activeUsers');
     
+    // Controls state
+    const controls = {
+        roughness: 0.5,
+        evolveSpeed: 5,
+        // Throttle control to prevent spamming the server
+        lastUpdate: {
+            roughness: 0,
+            palette: 0,
+            seed: 0,
+            evolveSpeed: 0
+        },
+        // Minimum time between updates (milliseconds)
+        throttleTime: 250,
+        // Visual feedback element
+        feedbackElement: null
+    };
+    
     // Connect to the server
     socket.on('connect', () => {
         console.log(`Connected to server [id: ${socket.id}]`);
@@ -67,6 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
             palette: state.palette,
             seedPoints: state.seedPoints
         });
+        
+        // Update control state
+        controls.roughness = state.roughness;
+        
         console.log(`Applied state update to fractal: roughness=${state.roughness}, palette=${state.palette}, seedPoints=${state.seedPoints.length}`);
     });
     
@@ -82,11 +103,148 @@ document.addEventListener('DOMContentLoaded', () => {
         fractal.evolve(0.01);
     });
     
+    // Show visual feedback for keypresses
+    function showKeyFeedback(key, action) {
+        // Remove existing feedback if present
+        if (controls.feedbackElement) {
+            document.body.removeChild(controls.feedbackElement);
+        }
+        
+        // Create feedback element
+        const feedback = document.createElement('div');
+        feedback.className = 'key-feedback';
+        feedback.innerHTML = `<span class="key">${key}</span> ${action}`;
+        document.body.appendChild(feedback);
+        
+        // Store reference and set timeout to remove
+        controls.feedbackElement = feedback;
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                document.body.removeChild(feedback);
+                if (controls.feedbackElement === feedback) {
+                    controls.feedbackElement = null;
+                }
+            }
+        }, 1500);
+    }
+    
+    // Add a random seed point
+    function addRandomSeed(intensity = 0.6) {
+        const now = Date.now();
+        if (now - controls.lastUpdate.seed < controls.throttleTime) return;
+        controls.lastUpdate.seed = now;
+        
+        // Create random position
+        const x = Math.random();
+        const y = Math.random();
+        const value = 0.4 + Math.random() * intensity;
+        
+        // Add seed point locally
+        fractal.addSeedPoint(x, y, value);
+        
+        // Add ripple effect
+        setTimeout(() => {
+            fractal.addRipple(x, y, value * 0.8);
+        }, 100);
+        
+        // Send to server
+        console.log(`Sending new seed point to server: x=${x.toFixed(2)}, y=${y.toFixed(2)}, value=${value.toFixed(2)}`);
+        socket.emit('addSeed', { x, y, value });
+    }
+    
+    // Add a ripple effect
+    function addRipple(intensity = 0.6) {
+        const x = Math.random();
+        const y = Math.random();
+        const value = 0.4 + Math.random() * intensity;
+        
+        fractal.addRipple(x, y, value);
+    }
+    
+    // Add multiple ripples in a pattern
+    function addRipplePattern(pattern = 'circle', count = 5) {
+        const centerX = Math.random();
+        const centerY = Math.random();
+        
+        for (let i = 0; i < count; i++) {
+            let x, y;
+            
+            if (pattern === 'circle') {
+                const angle = (i / count) * Math.PI * 2;
+                const distance = 0.1 + Math.random() * 0.1;
+                x = centerX + Math.cos(angle) * distance;
+                y = centerY + Math.sin(angle) * distance;
+            } else if (pattern === 'line') {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = (i / count) * 0.3;
+                x = centerX + Math.cos(angle) * distance;
+                y = centerY + Math.sin(angle) * distance;
+            } else {
+                x = Math.random();
+                y = Math.random();
+            }
+            
+            // Keep within bounds
+            x = Math.max(0, Math.min(1, x));
+            y = Math.max(0, Math.min(1, y));
+            
+            const value = 0.4 + Math.random() * 0.6;
+            setTimeout(() => {
+                fractal.addRipple(x, y, value);
+            }, i * 80);
+        }
+    }
+    
+    // Update roughness with throttling
+    function updateRoughness(delta) {
+        const now = Date.now();
+        if (now - controls.lastUpdate.roughness < controls.throttleTime) return;
+        
+        // Update roughness with constraints
+        controls.roughness = Math.max(0.1, Math.min(0.9, controls.roughness + delta));
+        controls.lastUpdate.roughness = now;
+        
+        // Update locally
+        fractal.updateOptions({ roughness: controls.roughness });
+        
+        // Update UI
+        document.getElementById('roughness').value = controls.roughness;
+        
+        // Send to server
+        console.log(`Sending roughness update to server: ${controls.roughness}`);
+        socket.emit('updateOption', { roughness: controls.roughness });
+    }
+    
+    // Update evolution speed with throttling
+    function updateEvolveSpeed(delta) {
+        const now = Date.now();
+        if (now - controls.lastUpdate.evolveSpeed < controls.throttleTime) return;
+        
+        // Update speed with constraints
+        controls.evolveSpeed = Math.max(1, Math.min(10, controls.evolveSpeed + delta));
+        controls.lastUpdate.evolveSpeed = now;
+        
+        // Update UI
+        document.getElementById('evolveSpeed').value = controls.evolveSpeed;
+        
+        // Send to server
+        console.log(`Sending evolution speed update to server: ${controls.evolveSpeed}`);
+        socket.emit('setEvolveSpeed', controls.evolveSpeed);
+    }
+    
+    // Add subtle evolution effect
+    function triggerSubtleEvolution() {
+        fractal.evolve(0.005); // Very subtle local evolution
+    }
+    
+    // Keep existing UI controls functional
+    
     // UI control event listeners with real-time updates
     const roughnessSlider = document.getElementById('roughness');
     roughnessSlider.addEventListener('input', () => {
         const roughness = parseFloat(roughnessSlider.value);
         fractal.updateOptions({ roughness });
+        controls.roughness = roughness;
     });
     
     // Only send to server when done changing (for bandwidth efficiency)
@@ -116,60 +274,80 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('updateOption', { palette });
     });
     
-    const addSeedButton = document.getElementById('addSeed');
-    addSeedButton.addEventListener('click', () => {
-        // Change cursor to indicate seed placing mode with glow effect
-        canvas.style.cursor = 'crosshair';
-        canvas.classList.add('seed-mode');
-        
-        // Add a visual hint
-        const hint = document.createElement('div');
-        hint.className = 'seed-hint';
-        hint.textContent = 'Click anywhere to add a seed point';
-        document.body.appendChild(hint);
-        
-        // One-time event listener for canvas click
-        const handleCanvasClick = (e) => {
-            // Get click position relative to canvas
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / canvas.width;
-            const y = (e.clientY - rect.top) / canvas.height;
-            
-            // Create a random height value between 0.4 and 1.0
-            const value = 0.4 + Math.random() * 0.6;
-            
-            // Add seed point locally with particle burst and ripple effect
-            fractal.addSeedPoint(x, y, value);
-            
-            // Add extra ripples around the seed point for emphasis
-            setTimeout(() => {
-                fractal.addRipple(x, y, value * 0.8);
-            }, 100);
-            
-            // Send to server
-            console.log(`Sending new seed point to server: x=${x.toFixed(2)}, y=${y.toFixed(2)}, value=${value.toFixed(2)}`);
-            socket.emit('addSeed', { x, y, value });
-            
-            // Reset cursor and remove hint
-            canvas.style.cursor = 'default';
-            canvas.classList.remove('seed-mode');
-            if (hint.parentNode) {
-                document.body.removeChild(hint);
-            }
-            
-            // Remove this event listener
-            canvas.removeEventListener('click', handleCanvasClick);
-        };
-        
-        canvas.addEventListener('click', handleCanvasClick);
-    });
-    
     const evolveSpeedSlider = document.getElementById('evolveSpeed');
     evolveSpeedSlider.addEventListener('change', () => {
         // Send evolution speed to server
         const speed = parseInt(evolveSpeedSlider.value);
+        controls.evolveSpeed = speed;
         console.log(`Sending evolution speed update to server: ${speed}`);
         socket.emit('setEvolveSpeed', speed);
+    });
+    
+    // Add keyboard controls
+    document.addEventListener('keydown', (e) => {
+        // Ignore if user is typing in an input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        switch (e.key) {
+            // Roughness controls
+            case 'ArrowUp':
+                updateRoughness(0.02);
+                showKeyFeedback('↑', 'Increase roughness');
+                break;
+            case 'ArrowDown':
+                updateRoughness(-0.02);
+                showKeyFeedback('↓', 'Decrease roughness');
+                break;
+                
+            // Evolution speed
+            case '+':
+            case '=':
+                updateEvolveSpeed(1);
+                showKeyFeedback('+', 'Increase evolution speed');
+                break;
+            case '-':
+                updateEvolveSpeed(-1);
+                showKeyFeedback('-', 'Decrease evolution speed');
+                break;
+                
+            // Seed points with different intensities
+            case ' ': // Space
+                addRandomSeed(0.6);
+                showKeyFeedback('Space', 'Add random seed point');
+                break;
+            case '1':
+                addRandomSeed(0.3);
+                showKeyFeedback('1', 'Add small seed point');
+                break;
+            case '2':
+                addRandomSeed(0.6);
+                showKeyFeedback('2', 'Add medium seed point');
+                break;
+            case '3':
+                addRandomSeed(0.9);
+                showKeyFeedback('3', 'Add large seed point');
+                break;
+                
+            // Visual effects
+            case 'r': // Ripple
+                addRipple();
+                showKeyFeedback('R', 'Add ripple effect');
+                break;
+            case 'c': // Circle pattern
+                addRipplePattern('circle');
+                showKeyFeedback('C', 'Add circle ripple pattern');
+                break;
+            case 'l': // Line pattern
+                addRipplePattern('line');
+                showKeyFeedback('L', 'Add line ripple pattern');
+                break;
+            case 'e': // Evolve
+                triggerSubtleEvolution();
+                showKeyFeedback('E', 'Subtle evolution');
+                break;
+                
+            // No default case needed
+        }
     });
     
     // Handle window resize
@@ -194,4 +372,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 2000);
         }
     }, 5000);
+    
+    // Add control help message
+    const keyboardHelp = document.createElement('div');
+    keyboardHelp.className = 'keyboard-help';
+    keyboardHelp.innerHTML = `
+        <h3>Keyboard Controls</h3>
+        <ul>
+            <li><strong>↑/↓</strong> - Adjust roughness</li>
+            <li><strong>+/-</strong> - Adjust evolution speed</li>
+            <li><strong>Space</strong> - Add random seed point</li>
+            <li><strong>1/2/3</strong> - Add small/medium/large seed points</li>
+            <li><strong>R</strong> - Add ripple effect</li>
+            <li><strong>C</strong> - Add circle ripple pattern</li>
+            <li><strong>L</strong> - Add line ripple pattern</li>
+            <li><strong>E</strong> - Subtle evolution</li>
+        </ul>
+    `;
+    document.body.appendChild(keyboardHelp);
 });
