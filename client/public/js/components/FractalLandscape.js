@@ -545,10 +545,10 @@ class FractalLandscape {
             const minHeight = Math.min(nwHeight, neHeight, seHeight, swHeight);
             const heightDiff = maxHeight - minHeight;
             
-            // Force more detail areas - MUCH more aggressive thresholds
-            const isDetailArea = centerHeight > 0.3 || // Extremely low threshold for peaks 
-                               heightDiff > 0.02 ||  // Extremely low threshold for variance
-                               size > 2;              // Force subdivision for all cells larger than 2
+            // More moderate thresholds to balance detail with the larger grid
+            const isDetailArea = centerHeight > 0.35 || // Moderate threshold for peaks 
+                               heightDiff > 0.03 ||   // Moderate threshold for variance
+                               size > 3;              // Force subdivision for larger cells
             
             if (isDetailArea) { // Always subdivide if it's a detail area
                 detailAreaCount++;
@@ -614,8 +614,8 @@ class FractalLandscape {
             }
         };
         
-        // Calculate optimal cell size for initial grid - use much smaller size for higher detail
-        const cellSize = Math.max(1, Math.floor(baseSkipFactor * 3)); // Reduced to push for more triangles
+        // With larger gridSize, we need slightly larger cell size for initial grid
+        const cellSize = Math.max(2, Math.floor(baseSkipFactor * 4)); // Balancing detail and performance
         
         // Divide terrain into initial grid cells and process each one
         for (let y = 0; y < effectiveGridSize - 1; y += cellSize) {

@@ -4,8 +4,8 @@ class TerrainGenerator {
         this.roughness = roughness;
         this.seedPoints = seedPoints;
         
-        // Grid size - using a power of 2 plus 1 (smaller for faster rendering)
-        this.gridSize = 65; // Was 129
+        // Grid size - using a power of 2 plus 1 (increased for higher detail)
+        this.gridSize = 129; // Was 65, increased to allow more triangles
         this.terrainMap = new Array(this.gridSize * this.gridSize).fill(0);
     }
     
