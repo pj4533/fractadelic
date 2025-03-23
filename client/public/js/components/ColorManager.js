@@ -35,6 +35,14 @@ class ColorManager {
     
     // Get a color for a height value with shifting
     getHeightColor(height, animate = true) {
+        // Safety check for invalid height
+        if (height === undefined || height === null || isNaN(height)) {
+            return this.palettes[this.currentPalette][0]; // Return first color as fallback
+        }
+        
+        // Ensure height is between 0 and 1
+        height = Math.max(0, Math.min(1, height));
+        
         const palette = this.palettes[this.currentPalette];
         
         // Apply color shifting for animation
@@ -51,24 +59,40 @@ class ColorManager {
     
     // Get color with a pulsating glow effect
     getGlowColor(color, x, y, globalTime, intensity = 0.5) {
-        // Extract RGB components
-        const r = parseInt(color.substring(1, 3), 16);
-        const g = parseInt(color.substring(3, 5), 16);
-        const b = parseInt(color.substring(5, 7), 16);
+        // Safety check for invalid color
+        if (!color || typeof color !== 'string' || !color.startsWith('#') || color.length < 7) {
+            return '#000000'; // Return black as fallback
+        }
         
-        // Calculate a pulsating factor based on position and time
-        // Scale the effect by the intensity parameter
-        const pulseFactor = (0.2 + intensity * 0.3) * 
-                           Math.sin(x / 30 + y / 30 + globalTime * (1 + intensity)) + 1;
-        
-        // Apply the pulse factor with intensity boost
-        const intensityMultiplier = 1 + (intensity * 0.5);
-        const rNew = Math.min(255, Math.round(r * pulseFactor * intensityMultiplier));
-        const gNew = Math.min(255, Math.round(g * pulseFactor * intensityMultiplier));
-        const bNew = Math.min(255, Math.round(b * pulseFactor * intensityMultiplier));
-        
-        // Convert back to hex
-        return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
+        try {
+            // Extract RGB components with error handling
+            const r = parseInt(color.substring(1, 3), 16);
+            const g = parseInt(color.substring(3, 5), 16);
+            const b = parseInt(color.substring(5, 7), 16);
+            
+            // Check if any RGB values are NaN (invalid hex color)
+            if (isNaN(r) || isNaN(g) || isNaN(b)) {
+                return '#000000'; // Return black for invalid colors
+            }
+            
+            // Calculate a pulsating factor based on position and time
+            // Scale the effect by the intensity parameter
+            const pulseFactor = (0.2 + intensity * 0.3) * 
+                            Math.sin(x / 30 + y / 30 + globalTime * (1 + intensity)) + 1;
+            
+            // Apply the pulse factor with intensity boost
+            const intensityMultiplier = 1 + (intensity * 0.5);
+            const rNew = Math.min(255, Math.round(r * pulseFactor * intensityMultiplier));
+            const gNew = Math.min(255, Math.round(g * pulseFactor * intensityMultiplier));
+            const bNew = Math.min(255, Math.round(b * pulseFactor * intensityMultiplier));
+            
+            // Convert back to hex with padding
+            return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
+        } catch (error) {
+            // Handle any unexpected errors during color processing
+            console.warn('Error processing color:', color, error);
+            return '#000000'; // Return black as fallback
+        }
     }
 }
 

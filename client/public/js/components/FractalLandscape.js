@@ -700,6 +700,41 @@ class FractalLandscape {
         this.ctx.restore();
     }
     
+    // Safely get terrain data with error handling
+    getSafeTerrainPoint(x, y, globalTime, waveEffect, stableWaveOffset, pixelWidth, pixelHeight) {
+        try {
+            // Ensure coordinates are within bounds
+            const validX = Math.max(0, Math.min(this.terrainGenerator.gridSize - 1, x));
+            const validY = Math.max(0, Math.min(this.terrainGenerator.gridSize - 1, y));
+            
+            // Get terrain value safely
+            const value = this.terrainGenerator.getValue(validX, validY);
+            
+            // Get colors with error handling
+            const baseColor = this.colorManager.getHeightColor(value);
+            const glowIntensity = this.options.glowIntensity || 0.5;
+            const glowColor = this.colorManager.getGlowColor(
+                baseColor, validX, validY, globalTime, glowIntensity
+            );
+            
+            // Apply wave effect
+            const waveX = waveEffect * Math.sin(validY / 10 + stableWaveOffset);
+            const waveY = waveEffect * Math.cos(validX / 10 + stableWaveOffset);
+            const xPos = validX * pixelWidth + waveX;
+            const yPos = validY * pixelHeight + waveY;
+            
+            return { xPos, yPos, value, color: glowColor };
+        } catch (error) {
+            console.warn('Error processing terrain point:', x, y, error);
+            return { 
+                xPos: x * pixelWidth, 
+                yPos: y * pixelHeight, 
+                value: 0, 
+                color: '#000000' 
+            };
+        }
+    }
+    
     // Draw a triangle with a simpler coloring approach for better performance
     drawOptimizedTriangle(x1, y1, color1, x2, y2, color2, x3, y3, color3) {
         // Create a triangle path
@@ -709,32 +744,51 @@ class FractalLandscape {
         this.ctx.lineTo(x3, y3);
         this.ctx.closePath();
         
-        // Use a faster coloring approach - average the colors
-        // Parse colors in batch for better performance
-        const r1 = parseInt(color1.slice(1, 3), 16);
-        const g1 = parseInt(color1.slice(3, 5), 16);
-        const b1 = parseInt(color1.slice(5, 7), 16);
+        try {
+            // Validate colors first - ensure valid hex format
+            if (!color1 || !color1.startsWith('#') || color1.length < 7) color1 = '#000000';
+            if (!color2 || !color2.startsWith('#') || color2.length < 7) color2 = '#000000';
+            if (!color3 || !color3.startsWith('#') || color3.length < 7) color3 = '#000000';
+            
+            // Use a faster coloring approach - average the colors
+            // Parse colors in batch for better performance
+            const r1 = parseInt(color1.slice(1, 3), 16);
+            const g1 = parseInt(color1.slice(3, 5), 16);
+            const b1 = parseInt(color1.slice(5, 7), 16);
+            
+            const r2 = parseInt(color2.slice(1, 3), 16);
+            const g2 = parseInt(color2.slice(3, 5), 16);
+            const b2 = parseInt(color2.slice(5, 7), 16);
+            
+            const r3 = parseInt(color3.slice(1, 3), 16);
+            const g3 = parseInt(color3.slice(3, 5), 16);
+            const b3 = parseInt(color3.slice(5, 7), 16);
+            
+            // Check for NaN values
+            if (isNaN(r1) || isNaN(g1) || isNaN(b1) || 
+                isNaN(r2) || isNaN(g2) || isNaN(b2) || 
+                isNaN(r3) || isNaN(g3) || isNaN(b3)) {
+                throw new Error('Invalid color values');
+            }
         
-        const r2 = parseInt(color2.slice(1, 3), 16);
-        const g2 = parseInt(color2.slice(3, 5), 16);
-        const b2 = parseInt(color2.slice(5, 7), 16);
-        
-        const r3 = parseInt(color3.slice(1, 3), 16);
-        const g3 = parseInt(color3.slice(3, 5), 16);
-        const b3 = parseInt(color3.slice(5, 7), 16);
-        
-        // Calculate weighted average color - gives higher weight to brighter colors
-        // This creates more vibrant transitions than a simple average
-        const avgR = Math.floor((r1 + r2 + r3) / 3);
-        const avgG = Math.floor((g1 + g2 + g3) / 3);
-        const avgB = Math.floor((b1 + b2 + b3) / 3);
-        
-        // Convert to hex color using template string for better performance
-        const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
-        
-        // Fill with average color
-        this.ctx.fillStyle = avgColor;
-        this.ctx.fill();
+            // Calculate weighted average color - gives higher weight to brighter colors
+            // This creates more vibrant transitions than a simple average
+            const avgR = Math.floor((r1 + r2 + r3) / 3);
+            const avgG = Math.floor((g1 + g2 + g3) / 3);
+            const avgB = Math.floor((b1 + b2 + b3) / 3);
+            
+            // Convert to hex color using template string for better performance
+            const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
+            
+            // Fill with average color
+            this.ctx.fillStyle = avgColor;
+            this.ctx.fill();
+        } catch (error) {
+            // Fallback if color parsing fails
+            console.warn('Error processing triangle colors:', error);
+            this.ctx.fillStyle = '#000000';
+            this.ctx.fill();
+        }
     }
     
     
