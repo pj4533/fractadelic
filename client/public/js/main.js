@@ -1,3 +1,6 @@
+// Import FractalLandscape class from the module
+import { FractalLandscape } from './components/FractalLandscape.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // Canvas setup
     const canvas = document.getElementById('fractalCanvas');

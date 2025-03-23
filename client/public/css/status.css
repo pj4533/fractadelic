@@ -1,0 +1,38 @@
+/* Server status indicators */
+
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #a0e8e8;
+}
+
+.server-status {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+
+.server-status::before {
+    content: "•";
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 1.5rem;
+    line-height: 0;
+}
+
+.server-status.connected {
+    color: #4caf50;
+}
+
+.server-status.connected::before {
+    color: #4caf50;
+}
+
+.server-status.disconnected {
+    color: #f44336;
+}
+
+.server-status.disconnected::before {
+    color: #f44336;
+}

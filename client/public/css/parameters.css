@@ -1,0 +1,132 @@
+/* Parameter controls styling */
+
+.parameter-overlay {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 900;
+    background-color: rgba(20, 20, 35, 0.9);
+    padding: 15px 20px;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    max-width: 950px;
+    width: 95%;
+    box-sizing: border-box;
+    margin: 0 auto 20px auto;
+}
+
+.param-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: nowrap; /* Prevent wrapping */
+    width: 100%;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    padding-bottom: 5px; /* Add padding for scrollbar */
+}
+
+.status-info {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 5px 0;
+    margin-top: 5px;
+    border-top: 1px solid rgba(100, 223, 223, 0.15);
+    font-size: 0.75rem;
+    color: #a0e8e8;
+    text-align: center;
+    width: 100%;
+}
+
+.param-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-radius: 6px;
+    background-color: rgba(30, 30, 45, 0.7);
+    flex: 0 0 auto;
+    margin: 4px;
+    cursor: pointer;
+    height: 38px;
+    overflow: hidden;
+    min-width: 200px;
+    max-width: 220px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    border: 1px solid rgba(100, 223, 223, 0.2);
+}
+
+.param-item:hover {
+    background-color: rgba(40, 40, 60, 0.8);
+    border-color: rgba(100, 223, 223, 0.4);
+}
+
+.param-item.highlight {
+    background-color: rgba(50, 50, 80, 0.8);
+    border-color: rgba(100, 223, 223, 0.6);
+}
+
+.key-hint {
+    background-color: rgba(100, 223, 223, 0.15);
+    color: #64dfdf;
+    border-radius: 4px;
+    padding: 3px 5px;
+    font-size: 0.8rem;
+    font-weight: normal;
+    margin-right: 8px;
+    min-width: 40px;
+    max-width: 40px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 24px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.arrow-left, .arrow-right, .arrow-up, .arrow-down {
+    display: inline-block;
+    padding: 0 8px;
+}
+
+.arrow-left, .arrow-up {
+    border-right: 1px solid rgba(100, 223, 223, 0.2);
+}
+
+.param-label {
+    font-size: 0.85rem;
+    color: #a0e8e8;
+    font-weight: normal;
+    margin-right: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+    box-sizing: border-box;
+}
+
+.param-value {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: white;
+    margin-left: 8px;
+    min-width: 60px;
+    max-width: 60px;
+    text-align: right;
+    background-color: rgba(100, 223, 223, 0.08);
+    padding: 3px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}

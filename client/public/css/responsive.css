@@ -1,0 +1,141 @@
+/* Responsive styles for different screen sizes */
+
+@media (max-width: 1200px) {
+    .parameter-overlay {
+        width: 95%;
+        gap: 12px;
+        padding: 12px 20px;
+    }
+    
+    .param-item {
+        min-width: 150px;
+        max-width: 170px;
+        padding: 8px 12px;
+    }
+    
+    .param-label {
+        max-width: 60px;
+    }
+}
+
+@media (max-width: 900px) {
+    .parameter-overlay {
+        width: 95%;
+        gap: 8px;
+        padding: 10px 15px;
+    }
+    
+    .param-item {
+        min-width: 180px;
+        max-width: 200px;
+        padding: 7px 10px;
+        height: 38px;
+    }
+    
+    .param-label {
+        max-width: 70px;
+        font-size: 0.8rem;
+    }
+    
+    .key-hint {
+        min-width: 36px;
+        max-width: 36px;
+        margin-right: 6px;
+        font-size: 0.75rem;
+        height: 24px;
+    }
+    
+    .param-value {
+        min-width: 48px;
+        max-width: 48px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    .parameter-overlay {
+        width: 100%;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    
+    .param-group {
+        gap: 6px;
+    }
+    
+    .param-item {
+        min-width: 130px;
+        max-width: 150px;
+        padding: 6px 8px;
+        height: 36px;
+        margin: 4px;
+    }
+    
+    .canvas-container {
+        height: calc(100vh - 350px); /* Ensure more space at bottom for controls */
+        margin-bottom: 15px;
+    }
+    
+    .status-info {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        margin-top: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .parameter-overlay {
+        width: 100%;
+        padding: 10px;
+        max-height: 300px;
+        overflow-y: visible;
+    }
+    
+    .param-group {
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+    }
+    
+    .param-item {
+        min-width: 150px;
+        max-width: 180px;
+        margin: 3px 2px;
+        flex-shrink: 0;
+    }
+    
+    .param-label {
+        max-width: 80px;
+    }
+    
+    .canvas-container {
+        height: calc(100vh - 380px);
+        margin-bottom: 15px;
+    }
+    
+    header p {
+        font-size: 0.9rem;
+    }
+    
+    header .help-text {
+        font-size: 0.8rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .status-info {
+        flex-direction: column;
+        gap: 3px;
+        padding: 4px 0;
+    }
+    
+    .server-status {
+        margin-top: 3px;
+    }
+}

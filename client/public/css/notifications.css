@@ -1,0 +1,45 @@
+/* Notification UI elements */
+
+.seed-hint {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 45, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    border: 1px solid rgba(100, 223, 223, 0.2);
+}
+
+.seed-mode {
+    border-color: rgba(255, 102, 196, 0.6);
+    background: rgba(40, 40, 55, 0.9);
+}
+
+/* Keyboard controls UI */
+.key-feedback {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(30, 30, 45, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 1000;
+    border: 1px solid rgba(100, 223, 223, 0.2);
+}
+
+.key {
+    display: inline-block;
+    background-color: rgba(100, 223, 223, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-weight: normal;
+}
