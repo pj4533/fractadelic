@@ -25,13 +25,13 @@ class PerformanceMonitor {
             targetFps: 35,         // Target FPS for optimal experience
             lastDirection: 'none', // Track last change direction to detect oscillation
             maxAllowedDetailChange: 0.25, // Starting value for maximum allowed change - will adapt based on convergence
-            initialMaxAllowedDetailChange: 0.25, // Keep track of the initial value - much higher to allow fast convergence
-            minAllowedDetailChange: 0.02, // Minimum value for detail change when fully converged
+            initialMaxAllowedDetailChange: 0.35, // Increased for faster convergence
+            minAllowedDetailChange: 0.04, // Increased minimum change for faster adaptation
             minTriangleTarget: 10000,    // Minimum acceptable triangle count
             maxTriangleTarget: 20000,    // Maximum acceptable triangle count
             preferredTriangleRange: {min: 12000, max: 18000}, // Ideal range to stabilize within
             previousDetailLevels: [0.15, 0.15, 0.15], // Track previous levels for exponential smoothing
-            smoothingFactor: 0.4,  // Increased smoothing (lower value = more smoothing)
+            smoothingFactor: 0.6,  // Increased to make adaptations more responsive (higher value = less smoothing)
             stableThreshold: 0.005, // Threshold for considering a change significant
             oscillationBuffer: [], // Track recent direction changes to detect oscillation patterns
             deadZoneCounter: 0,    // Count frames spent in the dead zone (no changes)
@@ -47,8 +47,8 @@ class PerformanceMonitor {
         this.perfData.triangleCount = triangleCount;
         this.perfData.detailAreas = detailAreaCount;
         
-        // Even faster adaptations (check every 250ms instead of 500ms)
-        if (now - this.perfData.lastFpsCheck > 250) {
+        // Check even more frequently for faster adaptation (200ms)
+        if (now - this.perfData.lastFpsCheck > 200) {
             // Calculate FPS
             const fps = this.perfData.frameCount * 1000 / (now - this.perfData.lastFpsCheck);
             console.log(`Calculated FPS: ${fps.toFixed(2)} from ${this.perfData.frameCount} frames`);
@@ -67,9 +67,9 @@ class PerformanceMonitor {
                 const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
                               this.perfData.fpsHistory.length;
                 
-                // Wait less time between major detail changes (500ms instead of 2000ms)
+                // Wait even less time between major detail changes (300ms for faster adaptation)
                 const timeSinceLastChange = now - this.perfData.lastDetailChange;
-                const readyForChange = timeSinceLastChange > 500;
+                const readyForChange = timeSinceLastChange > 300;
                 
                 // Check for oscillation patterns
                 const isOscillating = this.perfData.detailHistory.length >= 4 && 
@@ -168,16 +168,22 @@ class PerformanceMonitor {
                                 changeDirection = "stable";
                                 changeReason = "optimal";
                                 
-                                // When in optimal range, make much smaller adjustments or none at all
+                                // When in optimal range, make more aggressive adjustments
                                 if (currentAvgFps > 36) {
-                                    // Only make tiny adjustments when FPS is getting too high
-                                    baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.995);
+                                    // More significant adjustment when FPS is getting too high
+                                    baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.98);
                                 } else if (currentAvgFps < 31) {
-                                    // Only make tiny adjustments when FPS is getting too low
-                                    baseTargetDetail = this.perfData.adaptiveDetail * 1.005;
+                                    // More significant adjustment when FPS is getting too low
+                                    baseTargetDetail = this.perfData.adaptiveDetail * 1.02;
                                 } else {
-                                    // In the perfect sweet spot (31-36 FPS) - don't change at all
-                                    baseTargetDetail = this.perfData.adaptiveDetail;
+                                    // In the perfect sweet spot (31-36 FPS) - make very small adjustment
+                                    if (currentAvgFps > 34) {
+                                        baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.998);
+                                    } else if (currentAvgFps < 33) {
+                                        baseTargetDetail = this.perfData.adaptiveDetail * 1.002;
+                                    } else {
+                                        baseTargetDetail = this.perfData.adaptiveDetail;
+                                    }
                                 }
                             }
                         }
@@ -247,8 +253,8 @@ class PerformanceMonitor {
                         }
                         
                         // Calculate a base scaling factor from FPS distance (further = more change)
-                        // Use a non-linear curve to make it more aggressive for larger distances
-                        const distanceFactor = Math.min(1, Math.pow(fpsDistance * 2, 1.5));
+                        // Use a more aggressive non-linear curve to make larger changes for FPS differences
+                        const distanceFactor = Math.min(1, Math.pow(fpsDistance * 2.5, 1.7));
                         
                         // Combine factors, weighting stability more as we get more samples
                         const finalFactor = this.perfData.fpsHistory.length >= 3 
@@ -288,8 +294,8 @@ class PerformanceMonitor {
                     const smoothedTarget = (smoothingFactor * limitedTarget) + 
                                           ((1 - smoothingFactor) * previousAvg);
                                           
-                    // Update final target
-                    this.perfData.targetDetail = smoothedTarget;
+                    // Update final target with safety bounds
+                    this.perfData.targetDetail = Math.min(1.0, Math.max(0.08, smoothedTarget));
                     
                     // Update previous detail levels history for next smoothing
                     this.perfData.previousDetailLevels.push(this.perfData.targetDetail);
@@ -330,7 +336,7 @@ class PerformanceMonitor {
             const detailDiff = this.perfData.targetDetail - this.perfData.adaptiveDetail;
             
             // Adjust adaptation rate based on state
-            let adaptationRate = 0.4; // Default medium adaptation rate
+            let adaptationRate = 0.5; // Increased default adaptation rate for faster response
             
             // Calculate how close we are to target FPS
             const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
@@ -340,23 +346,23 @@ class PerformanceMonitor {
                 
             // Prioritize stability and convergence over speed
             if (this.perfData.optimalDetailFound) {
-                // Much slower adaptation when optimal settings are found
-                adaptationRate = 0.1;
+                // Moderately slow adaptation when optimal settings are found, but not too slow
+                adaptationRate = 0.2;
                 
                 // Check if we're in a very stable state (FPS in perfect range)
                 const stableAvgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
                                     this.perfData.fpsHistory.length;
                               
                 if (stableAvgFps >= 31 && stableAvgFps <= 36) {
-                    // In the perfect sweet spot - use extremely slow adaptation to prevent oscillation
-                    adaptationRate = 0.05;
+                    // In the perfect sweet spot - use moderately slow adaptation but still responsive enough
+                    adaptationRate = 0.1;
                 }
             } else if (nearTargetFps) {
-                // When near the target FPS, move carefully to avoid overshooting
-                adaptationRate = 0.3;
+                // When near the target FPS, move more quickly to reach target
+                adaptationRate = 0.4;
             } else if (Math.abs(detailDiff) > 0.1) {
-                // For very large changes, move more cautiously to avoid extreme swings
-                adaptationRate = 0.3;
+                // For very large changes, move a bit more cautiously but still with purpose
+                adaptationRate = 0.35;
             } else if (this.perfData.detailHistory.length >= 3) {
                 const recentChanges = this.perfData.detailHistory.slice(-3);
                 
@@ -371,8 +377,8 @@ class PerformanceMonitor {
                 }
                 
                 if (hasOscillation) {
-                    // Detected oscillation - use much slower adaptation
-                    adaptationRate = 0.15;
+                    // Detected oscillation - use slower adaptation but not too slow
+                    adaptationRate = 0.25;
                 }
             }
             
@@ -387,6 +393,9 @@ class PerformanceMonitor {
             } else {
                 this.perfData.adaptiveDetail = newDetail;
             }
+            
+            // Add safety bounds to prevent detail level from exceeding 1.0
+            this.perfData.adaptiveDetail = Math.min(1.0, Math.max(0.08, this.perfData.adaptiveDetail));
             
             // Add stability detection - if we're close to target, mark as stable
             if (Math.abs(detailDiff) < 0.02 && !this.perfData.optimalDetailFound) {

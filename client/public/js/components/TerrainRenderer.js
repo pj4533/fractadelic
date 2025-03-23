@@ -24,7 +24,9 @@ class TerrainRenderer {
         
         // Determine appropriate level for device
         // Calculate base skip factor - smaller values = more triangles
-        const baseSkipFactor = Math.max(0.5, Math.floor(detailLevel * 4)) / 5;
+        // Add an upper bound to detail level to prevent issues when it exceeds 1.0
+        const clampedDetailLevel = Math.min(1.0, detailLevel);
+        const baseSkipFactor = Math.max(0.5, Math.floor(clampedDetailLevel * 4)) / 5;
         
         // With larger gridSize, we need slightly larger cell size for initial grid
         const cellSize = Math.max(2, Math.floor(baseSkipFactor * 4)); // Balancing detail and performance
