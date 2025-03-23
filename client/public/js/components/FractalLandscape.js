@@ -174,8 +174,12 @@ class FractalLandscape {
         this.performanceMonitor.updateMetrics(triangleCount, detailAreaCount);
         this.performanceMonitor.updateTriangleHistory(triangleCount);
         
-        // Render particles
-        this.renderer.renderParticles(this.particleSystem);
+        // Render particles - ensure particleSystem is defined
+        if (!this.particleSystem) {
+            console.error("Error: this.particleSystem is undefined in FractalLandscape.render");
+        } else {
+            this.renderer.renderParticles(this.particleSystem);
+        }
         
         // Draw debug info
         this.performanceMonitor.drawDebugInfo(this.renderer.ctx);

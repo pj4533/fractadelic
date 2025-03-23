@@ -7,6 +7,8 @@
 - `npm run install-client` - Install client dependencies only
 - `cd client && npm run dev` - Serve the client in development mode
 
+> Note: The user will always run the server. Claude should never attempt to run the server.
+
 ## Architecture Overview
 
 The application is built with a modular component-based architecture:

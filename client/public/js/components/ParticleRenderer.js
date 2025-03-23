@@ -3,10 +3,19 @@ class ParticleRenderer {
     constructor(ctx, terrainGenerator) {
         this.ctx = ctx;
         this.terrainGenerator = terrainGenerator;
+        
+        // Ensure terrainGenerator is properly initialized
+        if (!this.terrainGenerator) {
+            console.error("Error: terrainGenerator is undefined in ParticleRenderer constructor");
+            // Set a default gridSize to prevent errors
+            this.defaultGridSize = 128;
+        }
     }
     
     // Render particles
     renderParticles(particleSystem, width, height) {
+        if (!particleSystem) return; // Guard against undefined particleSystem
+        
         // Batch particles by type for better rendering performance
         const standardParticles = [];
         const burstParticles = [];
@@ -26,15 +35,33 @@ class ParticleRenderer {
             // Only use fast calculations for standard particles
             const ageOpacity = 1 - (p.age / p.lifetime);
             
-            // Faster height lookup - avoid expensive floor operations when possible
-            const gridX = Math.min(this.terrainGenerator.gridSize - 1, 
-                         Math.floor(p.x / width * (this.terrainGenerator.gridSize - 1)));
-            const gridY = Math.min(this.terrainGenerator.gridSize - 1, 
-                         Math.floor(p.y / height * (this.terrainGenerator.gridSize - 1)));
-            const height = this.terrainGenerator.getValue(gridX, gridY);
+            // Safely access terrainGenerator with fallbacks
+            let height = 0.5; // Default height value if we can't get from terrain
             
-            // Get particle color - faster method
-            const particleColor = particleSystem.getParticleColor(p, height, ageOpacity);
+            if (this.terrainGenerator && typeof this.terrainGenerator.gridSize !== 'undefined') {
+                const gridSize = this.terrainGenerator.gridSize || this.defaultGridSize;
+                const gridX = Math.min(gridSize - 1, Math.floor(p.x / width * (gridSize - 1)));
+                const gridY = Math.min(gridSize - 1, Math.floor(p.y / height * (gridSize - 1)));
+                
+                // Only try to get value if getValue exists
+                if (typeof this.terrainGenerator.getValue === 'function') {
+                    height = this.terrainGenerator.getValue(gridX, gridY);
+                }
+            }
+            
+            // Get particle color - create a local color instead of relying on particleSystem
+            let particleColor;
+            if (p.burstParticle) {
+                // Burst particles use a bright white color
+                const alpha = Math.round(ageOpacity * 255).toString(16).padStart(2,'0');
+                particleColor = `#ffffff${alpha}`;
+            } else {
+                // Use a default color based on height
+                const r = Math.floor(200 + height * 55);
+                const g = Math.floor(200 + height * 55);
+                const b = Math.floor(220 + height * 35);
+                particleColor = `rgba(${r}, ${g}, ${b}, ${ageOpacity * p.brightness})`;
+            }
             
             // Simple circle for better performance
             this.ctx.fillStyle = particleColor;
@@ -50,13 +77,33 @@ class ParticleRenderer {
             // Calculate opacity based on age
             const ageOpacity = 1 - (p.age / p.lifetime);
             
-            // Get grid position and height
-            const gridX = Math.floor(p.x / width * (this.terrainGenerator.gridSize - 1));
-            const gridY = Math.floor(p.y / height * (this.terrainGenerator.gridSize - 1));
-            const height = this.terrainGenerator.getValue(gridX, gridY);
+            // Safely access terrainGenerator with fallbacks
+            let height = 0.5; // Default height value if we can't get from terrain
             
-            // Get particle color
-            const particleColor = particleSystem.getParticleColor(p, height, ageOpacity);
+            if (this.terrainGenerator && typeof this.terrainGenerator.gridSize !== 'undefined') {
+                const gridSize = this.terrainGenerator.gridSize || this.defaultGridSize;
+                const gridX = Math.min(gridSize - 1, Math.floor(p.x / width * (gridSize - 1)));
+                const gridY = Math.min(gridSize - 1, Math.floor(p.y / height * (gridSize - 1)));
+                
+                // Only try to get value if getValue exists
+                if (typeof this.terrainGenerator.getValue === 'function') {
+                    height = this.terrainGenerator.getValue(gridX, gridY);
+                }
+            }
+            
+            // Get particle color - create a local color instead of relying on particleSystem
+            let particleColor;
+            if (p.burstParticle) {
+                // Burst particles use a bright white color
+                const alpha = Math.round(ageOpacity * 255).toString(16).padStart(2,'0');
+                particleColor = `#ffffff${alpha}`;
+            } else {
+                // Use a default color based on height
+                const r = Math.floor(200 + height * 55);
+                const g = Math.floor(200 + height * 55);
+                const b = Math.floor(220 + height * 35);
+                particleColor = `rgba(${r}, ${g}, ${b}, ${ageOpacity * p.brightness})`;
+            }
             
             // Draw glowing particle (only for burst particles)
             const radius = p.size * (1 - p.age / p.lifetime) * 3;
@@ -66,8 +113,16 @@ class ParticleRenderer {
                 p.x, p.y, 0,
                 p.x, p.y, radius * 2
             );
-            gradient.addColorStop(0, particleColor);
-            gradient.addColorStop(1, `${particleColor.substring(0,7)}00`); // Transparent
+            // For burst particles, use the hex color format
+            if (particleColor.startsWith('#')) {
+                gradient.addColorStop(0, particleColor);
+                gradient.addColorStop(1, `${particleColor.substring(0,7)}00`); // Transparent
+            } else {
+                // For rgba colors, create transparent version
+                const rgbaBase = particleColor.substring(0, particleColor.lastIndexOf(','));
+                gradient.addColorStop(0, particleColor);
+                gradient.addColorStop(1, `${rgbaBase}, 0)`); // Transparent
+            }
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();

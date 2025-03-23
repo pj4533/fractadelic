@@ -20,7 +20,13 @@ class TerrainRenderer {
         
         // Initialize sub-renderers
         this.triangleRenderer = new TriangleRenderer(this.ctx);
+        
+        // Ensure terrainGenerator is defined before passing to ParticleRenderer
+        if (!this.terrainGenerator) {
+            console.error("Error: terrainGenerator is undefined in TerrainRenderer constructor");
+        }
         this.particleRenderer = new ParticleRenderer(this.ctx, this.terrainGenerator);
+        
         this.quadTreeSubdivider = new QuadTreeSubdivider(this.terrainGenerator, this.colorManager);
     }
     
@@ -68,7 +74,21 @@ class TerrainRenderer {
     
     // Render particles
     renderParticles(particleSystem) {
-        this.particleRenderer.renderParticles(particleSystem, this.width, this.height);
+        if (!particleSystem) {
+            console.error("Error: particleSystem is undefined in TerrainRenderer.renderParticles");
+            return;
+        }
+        
+        if (!this.particleRenderer) {
+            console.error("Error: this.particleRenderer is undefined in TerrainRenderer.renderParticles");
+            return;
+        }
+        
+        try {
+            this.particleRenderer.renderParticles(particleSystem, this.width, this.height);
+        } catch (error) {
+            console.error("Error rendering particles:", error);
+        }
     }
     
     // Update canvas dimensions if needed
