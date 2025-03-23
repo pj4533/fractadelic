@@ -34,17 +34,23 @@ const state = {
 // Update animation state at regular intervals
 setInterval(() => {
     // Update time-based animation parameters
-    state.globalTime += 0.033; // Roughly 33ms
-    state.waveOffset += 0.033 * 0.5; // Base wave movement 
-    state.colorShift = (state.colorShift + 0.033 * 0.0002) % 1;
+    state.globalTime += 0.016; // 16ms (60fps-like timing)
+    state.waveOffset += 0.016 * 0.5; // Base wave movement 
+    state.colorShift = (state.colorShift + 0.016 * 0.0002) % 1;
     
-    // Broadcast animation state to all clients every 100ms
+    // Create shared random seed for determinism
+    const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
+    
+    // Broadcast animation state to all clients more frequently
     io.emit('animationState', {
         globalTime: state.globalTime,
         waveOffset: state.waveOffset,
-        colorShift: state.colorShift
+        colorShift: state.colorShift,
+        sharedSeed: sharedSeed,
+        // Add microEvolve flag every 100ms
+        microEvolve: (Math.floor(state.globalTime * 10) % 1 === 0)
     });
-}, 100); // Update 10 times per second for efficiency
+}, 16); // Update at approximate 60fps for smooth animation
 
 // Connected users
 let connectedUsers = 0;

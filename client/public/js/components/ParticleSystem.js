@@ -5,6 +5,18 @@ class ParticleSystem {
         this.colorManager = colorManager;
         this.particles = [];
         this.maxParticles = maxParticles;
+        this.seed = 12345; // Default seed
+    }
+    
+    // Set a shared seed for deterministic randomness
+    setSharedSeed(seed) {
+        this.seed = seed;
+    }
+    
+    // Get deterministic random number
+    getSeededRandom() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
     }
     
     // Create particles based on terrain
@@ -18,8 +30,8 @@ class ParticleSystem {
     
     // Add a particle at a random position
     addRandomParticle(width, height) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
+        const x = this.getSeededRandom() * width;
+        const y = this.getSeededRandom() * height;
         
         // Find the height at this position
         const gridX = Math.floor(x / width * (this.terrainGenerator.gridSize - 1));
@@ -36,8 +48,8 @@ class ParticleSystem {
             size,
             speed,
             brightness,
-            direction: Math.random() * Math.PI * 2,
-            lifetime: 10000 + Math.random() * 15000,
+            direction: this.getSeededRandom() * Math.PI * 2,
+            lifetime: 10000 + this.getSeededRandom() * 15000,
             age: 0
         });
     }
@@ -60,8 +72,8 @@ class ParticleSystem {
             p.x += Math.cos(p.direction) * p.speed * (deltaTime / 100);
             p.y += Math.sin(p.direction) * p.speed * (deltaTime / 100);
             
-            // Change direction slightly
-            p.direction += (Math.random() - 0.5) * 0.2;
+            // Change direction slightly - using seeded random for determinism
+            p.direction += (this.getSeededRandom() - 0.5) * 0.2;
             
             // Check boundaries
             if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
@@ -88,22 +100,22 @@ class ParticleSystem {
         const numParticles = 20 + Math.floor(intensity * 30);
         
         for (let i = 0; i < numParticles; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 1 + Math.random() * 5;
-            const distance = 20 + Math.random() * 50;
-            const size = 1 + Math.random() * 3;
+            const angle = this.getSeededRandom() * Math.PI * 2;
+            const speed = 1 + this.getSeededRandom() * 5;
+            const distance = 20 + this.getSeededRandom() * 50;
+            const size = 1 + this.getSeededRandom() * 3;
             
-            const particleX = x + Math.cos(angle) * Math.random() * 10;
-            const particleY = y + Math.sin(angle) * Math.random() * 10;
+            const particleX = x + Math.cos(angle) * this.getSeededRandom() * 10;
+            const particleY = y + Math.sin(angle) * this.getSeededRandom() * 10;
             
             this.particles.push({
                 x: particleX, 
                 y: particleY,
                 size,
                 speed,
-                brightness: 0.8 + Math.random() * 0.2,
+                brightness: 0.8 + this.getSeededRandom() * 0.2,
                 direction: angle,
-                lifetime: 1000 + Math.random() * 3000,
+                lifetime: 1000 + this.getSeededRandom() * 3000,
                 age: 0,
                 burstParticle: true
             });

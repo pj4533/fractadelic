@@ -82,13 +82,15 @@ class FractalLandscape {
             
             // Update wave effect
             this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+            
+            // Auto-evolve the landscape very subtly (only in local mode)
+            if (timestamp - this.lastAutoEvolutionTime > 100) {
+                this.terrainGenerator.microEvolve(0.001);
+                this.lastAutoEvolutionTime = timestamp;
+            }
         }
-        
-        // Auto-evolve the landscape very subtly
-        if (timestamp - this.lastAutoEvolutionTime > 100) { // Micro-evolve every 100ms
-            this.terrainGenerator.microEvolve(0.001);
-            this.lastAutoEvolutionTime = timestamp;
-        }
+        // In server sync mode, we don't do any time-based updates locally
+        // All updates come from the server's animationState events
         
         // Update particles
         this.particleSystem.updateParticles(deltaTime, this.width, this.height);
@@ -175,6 +177,25 @@ class FractalLandscape {
         if (animState.colorShift !== undefined) {
             this.colorManager.colorShift = animState.colorShift;
         }
+        
+        // Perform microEvolve if signaled by server
+        if (animState.microEvolve) {
+            this.terrainGenerator.microEvolve(0.001);
+        }
+        
+        // Store the shared random seed for deterministic random operations
+        if (animState.sharedSeed !== undefined) {
+            this.sharedSeed = animState.sharedSeed;
+            // Set seed for particle system
+            this.particleSystem.setSharedSeed(this.sharedSeed);
+        }
+    }
+    
+    // Get deterministic random value using shared seed
+    getSharedRandom() {
+        // Simple deterministic pseudo-random using shared seed
+        this.sharedSeed = (this.sharedSeed * 9301 + 49297) % 233280;
+        return this.sharedSeed / 233280;
     }
     
     // Evolve the landscape with dramatic effect
@@ -182,11 +203,11 @@ class FractalLandscape {
         // Apply evolution to the map
         this.terrainGenerator.evolve(rate);
         
-        // Add random ripples for visual effect
+        // Add random ripples for visual effect using shared randomness if available
         for (let i = 0; i < 5; i++) {
-            const x = Math.random();
-            const y = Math.random();
-            const value = Math.random();
+            const x = this.useServerSync ? this.getSharedRandom() : Math.random();
+            const y = this.useServerSync ? this.getSharedRandom() : Math.random();
+            const value = this.useServerSync ? this.getSharedRandom() : Math.random();
             this.rippleEffect.addRipple(x, y, value);
         }
         
