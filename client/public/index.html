@@ -8,6 +8,16 @@
 </head>
 <body>
     <div class="container">
+        <header>
+            <h1>Fractadelic</h1>
+            <p>Create evolving fractal landscapes together in real-time</p>
+            <p class="help-text">Click/right-click parameters to change or use keyboard shortcuts</p>
+        </header>
+        
+        <div class="canvas-container">
+            <canvas id="fractalCanvas"></canvas>
+        </div>
+        
         <div class="parameter-overlay">
             <div class="param-group">
                 <div class="param-item" data-key="p">
@@ -39,16 +49,6 @@
                 <span id="activeUsers">1 user online</span>
                 <div id="server-status" class="server-status">Connected</div>
             </div>
-        </div>
-        
-        <header>
-            <h1>Fractadelic</h1>
-            <p>Create evolving fractal landscapes together in real-time</p>
-            <p class="help-text">Click/right-click parameters to change or use keyboard shortcuts</p>
-        </header>
-        
-        <div class="canvas-container">
-            <canvas id="fractalCanvas"></canvas>
         </div>
     </div>
     

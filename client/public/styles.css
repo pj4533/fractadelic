@@ -15,10 +15,11 @@ body {
 .container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    justify-content: space-between; /* Ensures content is spaced throughout the container */
 }
 
 header {
@@ -53,12 +54,12 @@ header .help-text {
     flex: 1;
     position: relative;
     width: 100%;
-    height: calc(100vh - 210px); /* Reduced height to make room for UI */
+    height: calc(100vh - 330px); /* Reduced height to make room for UI */
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 0 25px rgba(100, 223, 223, 0.3);
     animation: glow 5s infinite alternate;
-    margin-bottom: 100px; /* Increased bottom margin to make room for UI */
+    margin-bottom: 20px; /* Reduced margin since we're not using fixed positioning for parameters */
 }
 
 @keyframes glow {
@@ -78,10 +79,10 @@ header .help-text {
 
 /* Parameter display integrated at bottom */
 .parameter-overlay {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative; /* Changed from fixed to relative */
+    bottom: auto; /* Removed fixed positioning */
+    left: auto;
+    transform: none;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -98,6 +99,7 @@ header .help-text {
     max-width: 800px;
     width: 90%; /* Use percentage width for better responsiveness */
     box-sizing: border-box; /* Include padding in width calculation */
+    margin: 0 auto 20px auto; /* Added auto horizontal margins and bottom margin */
 }
 
 .param-group {
@@ -111,7 +113,7 @@ header .help-text {
 
 .parameter-overlay:hover {
     opacity: 1;
-    transform: translateX(-50%) translateY(-3px);
+    transform: translateY(-3px); /* Removed translateX since we're not using fixed positioning */
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(100, 223, 223, 0.5);
 }
 
@@ -335,10 +337,9 @@ header .help-text {
     }
     
     .parameter-overlay {
-        width: calc(100% - 20px);
+        width: 100%;
         gap: 8px;
         padding: 10px 12px;
-        bottom: 15px;
     }
     
     .param-group {
@@ -354,8 +355,8 @@ header .help-text {
     }
     
     .canvas-container {
-        height: calc(100vh - 220px); /* Ensure more space at bottom for controls */
-        margin-bottom: 100px;
+        height: calc(100vh - 350px); /* Ensure more space at bottom for controls */
+        margin-bottom: 15px;
     }
     
     .status-info {
@@ -367,9 +368,9 @@ header .help-text {
 
 @media (max-width: 480px) {
     .parameter-overlay {
-        width: calc(100% - 16px);
+        width: 100%;
         padding: 10px;
-        max-height: 260px;
+        max-height: 300px;
         overflow-y: auto;
     }
     
@@ -389,8 +390,8 @@ header .help-text {
     }
     
     .canvas-container {
-        height: calc(100vh - 260px);
-        margin-bottom: 140px;
+        height: calc(100vh - 380px);
+        margin-bottom: 15px;
     }
     
     header p {
