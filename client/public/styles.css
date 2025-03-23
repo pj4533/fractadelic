@@ -85,16 +85,17 @@ header .help-text {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 15px;
+    gap: 20px;
     z-index: 900;
     background-color: rgba(20, 20, 35, 0.6);
-    padding: 12px 20px;
+    padding: 12px 30px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(100, 223, 223, 0.4);
     transition: all 0.3s ease;
     opacity: 0.9;
     animation: glow-subtle 3s infinite alternate;
+    min-width: 800px;
 }
 
 .parameter-overlay:hover {
@@ -129,13 +130,14 @@ header .help-text {
 .param-item {
     display: flex;
     align-items: center;
-    padding: 8px 14px;
+    padding: 8px 20px;
     border-radius: 15px;
     background-color: rgba(20, 20, 35, 0.6);
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
     box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
-    min-width: 120px;
+    min-width: 160px;
+    flex: 1;
     margin: 0 3px;
     cursor: pointer;
 }
@@ -156,27 +158,29 @@ header .help-text {
     background-color: rgba(100, 223, 223, 0.2);
     color: #64dfdf;
     border-radius: 4px;
-    padding: 2px 4px;
-    font-size: 0.7rem;
+    padding: 3px 6px;
+    font-size: 0.8rem;
     font-weight: bold;
-    margin-right: 8px;
-    min-width: 20px;
+    margin-right: 12px;
+    min-width: 30px;
     text-align: center;
 }
 
 .param-label {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #64dfdf;
     font-weight: 600;
     margin-right: auto;
 }
 
 .param-value {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: bold;
     color: white;
     text-shadow: 0 0 10px rgba(100, 223, 223, 0.6);
-    margin-left: 8px;
+    margin-left: 15px;
+    min-width: 60px;
+    text-align: right;
 }
 
 @keyframes pulse-highlight {
