@@ -430,7 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 5000);
     
-    // Add control help message
+    // Setup controls toggle
+    const controlToggle = document.getElementById('control-toggle');
     const keyboardHelp = document.createElement('div');
     keyboardHelp.className = 'keyboard-help';
     keyboardHelp.innerHTML = `
@@ -447,6 +448,22 @@ document.addEventListener('DOMContentLoaded', () => {
             <li><strong>E</strong> - Subtle evolution</li>
         </ul>
     `;
+    
+    // Add keyboard help as hidden initially
+    keyboardHelp.style.display = 'none';
     document.body.appendChild(keyboardHelp);
+    
+    // Toggle keyboard help visibility
+    let helpVisible = false;
+    controlToggle.addEventListener('click', () => {
+        helpVisible = !helpVisible;
+        keyboardHelp.style.display = helpVisible ? 'block' : 'none';
+        
+        // Animate the control button
+        controlToggle.classList.add('active');
+        setTimeout(() => {
+            controlToggle.classList.remove('active');
+        }, 300);
+    });
     
 });

@@ -8,6 +8,43 @@
 </head>
 <body>
     <div class="container">
+        <div class="overlay-controls">
+            <div class="control-button" id="control-toggle">
+                <span class="control-icon">⌨️</span>
+            </div>
+        </div>
+        
+        <div class="parameter-overlay">
+            <div class="param-item" data-key="p">
+                <div class="key-hint">P</div>
+                <div class="param-label">Palette</div>
+                <div id="palette-value" class="param-value">cosmic</div>
+            </div>
+            
+            <div class="param-item" data-key="↑↓">
+                <div class="key-hint">↑↓</div>
+                <div class="param-label">Roughness</div>
+                <div id="roughness-value" class="param-value">0.50</div>
+            </div>
+            
+            <div class="param-item" data-key="+-">
+                <div class="key-hint">+-</div>
+                <div class="param-label">Evolution</div>
+                <div id="evolution-value" class="param-value">5</div>
+            </div>
+            
+            <div class="param-item" data-key="space">
+                <div class="key-hint">Space</div>
+                <div class="param-label">Seeds</div>
+                <div id="seeds-value" class="param-value">0</div>
+            </div>
+        </div>
+        
+        <div class="status-overlay">
+            <span id="activeUsers">1 user online</span>
+            <div id="server-status" class="server-status">Connected</div>
+        </div>
+        
         <header>
             <h1>Fractadelic</h1>
             <p>Create evolving fractal landscapes together in real-time</p>
@@ -15,33 +52,6 @@
         
         <div class="canvas-container">
             <canvas id="fractalCanvas"></canvas>
-        </div>
-        
-        <div class="parameter-display">
-            <div class="param-item">
-                <div class="param-label">Palette</div>
-                <div id="palette-value" class="param-value">cosmic</div>
-            </div>
-            
-            <div class="param-item">
-                <div class="param-label">Roughness</div>
-                <div id="roughness-value" class="param-value">0.50</div>
-            </div>
-            
-            <div class="param-item">
-                <div class="param-label">Evolution Speed</div>
-                <div id="evolution-value" class="param-value">5</div>
-            </div>
-            
-            <div class="param-item">
-                <div class="param-label">Seed Points</div>
-                <div id="seeds-value" class="param-value">0</div>
-            </div>
-        </div>
-        
-        <div class="user-info">
-            <span id="activeUsers">1 user online</span>
-            <div id="server-status" class="server-status">Server status: Connecting...</div>
         </div>
     </div>
     
