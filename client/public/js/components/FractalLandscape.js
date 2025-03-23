@@ -68,28 +68,35 @@ class FractalLandscape {
         const deltaTime = Math.min(timestamp - this.lastFrameTime, 33); // Cap at ~30fps to avoid large jumps
         this.lastFrameTime = timestamp;
         
-        // Always update animation locally for smoother rendering
-        // Use smaller increment values for smoother transitions
-        this.globalTime += deltaTime * 0.0005; // Half the original rate for smoother motion
-        this.colorManager.updateColorShift(deltaTime * 0.7); // Reduce color shift speed
+        if (this.useServerSync && this.syncData) {
+            // In server sync mode, use the rate-based synchronization system
+            // This creates smooth animations that follow server values without jumps
+            this.applyServerSync(deltaTime);
+        } else {
+            // In local mode, use direct increments
+            // Use smaller increment values for smoother transitions
+            this.globalTime += deltaTime * 0.0005; // Half the original rate for smoother motion
+            
+            // Use smaller waveOffset increments for smoother transitions
+            this.waveOffset += (deltaTime * 0.0005) * this.options.waveIntensity;
+        }
         
-        // Use smaller waveOffset increments for smoother transitions
-        // Divide by a larger factor for smaller, smoother steps
-        this.waveOffset += (deltaTime * 0.0005) * this.options.waveIntensity;
+        // Update color shift (in both modes)
+        this.colorManager.updateColorShift(deltaTime * 0.5); // Even slower color shifts
         
         // Auto-evolve less frequently and with smaller values
-        if (timestamp - this.lastAutoEvolutionTime > 200) { // Reduced frequency
-            this.terrainGenerator.microEvolve(0.0005); // Half the evolution amount
+        if (timestamp - this.lastAutoEvolutionTime > 250) { // Even lower frequency
+            this.terrainGenerator.microEvolve(0.0003); // Smaller evolution amount
             this.lastAutoEvolutionTime = timestamp;
         }
         
-        // Update particles with potentially reduced particle count for performance
+        // Update particles
         this.particleSystem.updateParticles(deltaTime, this.width, this.height);
         
-        // Render - make sure this happens on next animation frame
+        // Render
         this.render();
         
-        // Continue animation - use high priority by passing true as second argument
+        // Continue animation
         this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
     }
     
@@ -148,9 +155,6 @@ class FractalLandscape {
     updateAnimationState(animState) {
         if (!this.useServerSync) return;
         
-        // Only sync base parameters, don't override local animation state
-        // This preserves smooth local animation while keeping clients roughly in sync
-        
         // Store the shared random seed for deterministic random operations
         if (animState.sharedSeed !== undefined) {
             this.sharedSeed = animState.sharedSeed;
@@ -158,53 +162,101 @@ class FractalLandscape {
             this.particleSystem.setSharedSeed(this.sharedSeed);
         }
         
-        // Perform gentle synchronization with server values
+        // Initialize local sync state if needed
+        if (!this.syncData) {
+            this.syncData = {
+                // Store last server values received
+                lastServerGlobalTime: this.globalTime,
+                lastServerWaveOffset: this.waveOffset,
+                lastServerColorShift: this.colorManager.colorShift,
+                
+                // Store deltas (rate of change from server)
+                globalTimeDelta: 0.016, // Default frames (60fps)
+                waveOffsetDelta: 0.008, // Default wave movement
+                colorShiftDelta: 0.0000032, // Default color shift
+                
+                // Last update timestamp
+                lastUpdateTime: performance.now(),
+                
+                // Server updates counter
+                updateCounter: 0
+            };
+        }
+        
+        const now = performance.now();
+        const timeSinceLastUpdate = (now - this.syncData.lastUpdateTime) / 1000; // in seconds
+        this.syncData.lastUpdateTime = now;
+        
+        // Don't allow backward jumps in time/animation - only accelerate or decelerate
         if (animState.isSyncCheckpoint) {
-            // Store target values for interpolation
-            if (!this.syncTargets) {
-                this.syncTargets = {
-                    globalTime: this.globalTime,
-                    waveOffset: this.waveOffset,
-                    colorShift: this.colorManager.colorShift,
-                    progress: 1.0 // Fully reached previous target
-                };
+            this.syncData.updateCounter++;
+            
+            // Calculate how much the server values changed since last sync
+            if (animState.globalTime !== undefined) {
+                const serverTimeDiff = animState.globalTime - this.syncData.lastServerGlobalTime;
+                // Update stored server values
+                this.syncData.lastServerGlobalTime = animState.globalTime;
+                
+                // Calculate rate of change per second (rather than directly setting values)
+                // This prevents jumps by making the client match velocity instead of position
+                if (serverTimeDiff > 0 && timeSinceLastUpdate > 0) {
+                    // Target delta: how fast server time is advancing
+                    const targetDelta = serverTimeDiff / timeSinceLastUpdate;
+                    // Blend current delta with target (80% current, 20% target) for stability
+                    this.syncData.globalTimeDelta = 0.8 * this.syncData.globalTimeDelta + 0.2 * targetDelta;
+                }
             }
             
-            // Update target values with new server values
-            this.syncTargets.globalTime = animState.globalTime;
-            this.syncTargets.waveOffset = animState.waveOffset * this.options.waveIntensity;
+            // Calculate wave offset delta (rate of change)
+            if (animState.waveOffset !== undefined) {
+                const serverWaveOffsetValue = animState.waveOffset * this.options.waveIntensity;
+                const serverWaveDiff = serverWaveOffsetValue - this.syncData.lastServerWaveOffset;
+                this.syncData.lastServerWaveOffset = serverWaveOffsetValue;
+                
+                if (serverWaveDiff !== 0 && timeSinceLastUpdate > 0) {
+                    // Target delta: how fast server wave is changing
+                    const targetDelta = serverWaveDiff / timeSinceLastUpdate;
+                    // Blend deltas very gradually (95% current, 5% target) for smooth transitions
+                    this.syncData.waveOffsetDelta = 0.95 * this.syncData.waveOffsetDelta + 0.05 * targetDelta;
+                }
+            }
             
+            // Calculate color shift delta (rate of change)
             if (animState.colorShift !== undefined) {
-                this.syncTargets.colorShift = animState.colorShift;
+                const serverColorDiff = animState.colorShift - this.syncData.lastServerColorShift;
+                this.syncData.lastServerColorShift = animState.colorShift;
+                
+                if (serverColorDiff !== 0 && timeSinceLastUpdate > 0) {
+                    const targetDelta = serverColorDiff / timeSinceLastUpdate;
+                    this.syncData.colorShiftDelta = 0.95 * this.syncData.colorShiftDelta + 0.05 * targetDelta;
+                }
             }
-            
-            // Reset interpolation progress
-            this.syncTargets.progress = 0.0;
-        } else if (this.syncTargets && this.syncTargets.progress < 1.0) {
-            // Continue interpolation toward target values
-            // Increase progress by a small amount for gradual synchronization
-            this.syncTargets.progress = Math.min(1.0, this.syncTargets.progress + 0.02);
-            
-            // Apply smooth interpolation (easing function)
-            const t = this.easeInOutCubic(this.syncTargets.progress);
-            
-            // Interpolate values
-            const timeOffset = this.syncTargets.globalTime - this.globalTime;
-            this.globalTime += timeOffset * 0.05; // Very gentle time correction
-            
-            // Smoothly adjust wave offset (most visually apparent)
-            const waveOffset = this.syncTargets.waveOffset - this.waveOffset;
-            this.waveOffset += waveOffset * 0.03; // Very gentle wave correction
-            
-            // Smoothly adjust color shift
-            const colorShiftDiff = this.syncTargets.colorShift - this.colorManager.colorShift;
-            this.colorManager.colorShift += colorShiftDiff * 0.05;
         }
         
         // Perform microEvolve if signaled by server
         if (animState.microEvolve) {
-            this.terrainGenerator.microEvolve(0.0005); // Reduced value for smoother changes
+            this.terrainGenerator.microEvolve(0.0003); // Even smaller value for smoother changes
         }
+    }
+    
+    // Apply server-driven animation parameters in local animation loop
+    // This method should be called from continuousAnimation
+    applyServerSync(deltaTime) {
+        if (!this.useServerSync || !this.syncData) return;
+        
+        // Convert deltaTime to seconds
+        const dt = deltaTime * 0.001;
+        
+        // Update values based on deltas (rates of change) rather than absolute values
+        // This creates smooth transitions without jumps
+        this.globalTime += this.syncData.globalTimeDelta * dt;
+        this.waveOffset += this.syncData.waveOffsetDelta * dt;
+        
+        // Smoothly adjust color shift
+        this.colorManager.colorShift += this.syncData.colorShiftDelta * dt;
+        // Keep color shift in 0-1 range
+        if (this.colorManager.colorShift > 1) this.colorManager.colorShift -= 1;
+        if (this.colorManager.colorShift < 0) this.colorManager.colorShift += 1;
     }
     
     // Easing function for smooth interpolation

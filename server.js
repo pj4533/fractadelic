@@ -31,46 +31,54 @@ const state = {
     colorShift: 0
 };
 
+// Define consistent timer values for better synchronization
+const INTERNAL_UPDATE_INTERVAL = 16; // ms - internal state updates at 60fps
+const HEARTBEAT_INTERVAL = 3000;     // ms - regular sync interval (3 seconds)
+const SEED_UPDATE_INTERVAL = 1000;   // ms - random seed updates (1 second)
+
+// Consistent movement rates for predictable client interpolation
+const TIME_DELTA = 0.016;            // Global time increment per frame
+const WAVE_DELTA = 0.016 * 0.5;      // Wave offset increment per frame
+const COLOR_DELTA = 0.016 * 0.0002;  // Color shift increment per frame
+
 // Continuous internal animation state updates (faster than broadcast)
 setInterval(() => {
-    // Update time-based animation parameters
-    state.globalTime += 0.016; // 16ms (60fps-like timing)
-    state.waveOffset += 0.016 * 0.5; // Base wave movement 
-    state.colorShift = (state.colorShift + 0.016 * 0.0002) % 1;
-}, 16); // Update at approximate 60fps internally
+    // Update time-based animation parameters at constant rates
+    state.globalTime += TIME_DELTA;
+    state.waveOffset += WAVE_DELTA;
+    state.colorShift = (state.colorShift + COLOR_DELTA) % 1;
+}, INTERNAL_UPDATE_INTERVAL);
 
-// Frequent lightweight sync with minimal data
+// Seed updates for shared randomness - lightweight
 setInterval(() => {
     // Create shared random seed for determinism
     const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
     
-    // Broadcast minimal animation state at moderate frequency
+    // Broadcast only seed data - no visual state changes
     io.emit('animationState', {
-        sharedSeed: sharedSeed,
-        // Add microEvolve flag occasionally
-        microEvolve: (Math.floor(state.globalTime * 10) % 1 === 0)
+        sharedSeed: sharedSeed
     });
-}, 500); // Update at 2fps - enough for shared random values but not too heavy
+}, SEED_UPDATE_INTERVAL);
 
-// Full synchronization checkpoint at longer intervals
+// Regular heartbeat sync to keep clients aligned
 let syncCounter = 0;
 setInterval(() => {
     syncCounter++;
     // Create shared random seed for determinism
     const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
     
-    // Broadcast full animation state to all clients less frequently
+    // Broadcast full animation state to all clients at regular intervals
     io.emit('animationState', {
         globalTime: state.globalTime,
         waveOffset: state.waveOffset,
         colorShift: state.colorShift,
         sharedSeed: sharedSeed,
-        // Flag this as a full sync checkpoint
+        // Flag this as a sync checkpoint
         isSyncCheckpoint: true,
-        // Add microEvolve flag occasionally
-        microEvolve: (syncCounter % 5 === 0)
+        // Add occasional microEvolve
+        microEvolve: (syncCounter % 3 === 0)
     });
-}, 30000); // Full sync every 30 seconds
+}, HEARTBEAT_INTERVAL);
 
 // Connected users
 let connectedUsers = 0;
