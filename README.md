@@ -8,10 +8,7 @@ A collaborative real-time fractal landscape generator where users can create and
 
 - Generate fractal landscapes using the Diamond-Square algorithm
 - Collaborate with other users in real-time with synchronized displays
-- Dynamic particle systems and ripple effects
 - Vibrant color palettes with smooth transitions
-- Interactive parameter controls for real-time adjustments
-- Wave, glow, and particle visual effects
 - Responsive design for all device sizes
 - Deterministic randomness for consistent experiences
 - Adaptive performance optimization for all devices
@@ -102,11 +99,6 @@ fractadelic/
 ## How to Use
 
 - **Palette (P key)**: Cycle through different visual themes
-- **Wave (Left/Right arrows)**: Control wave-like movement intensity
-- **Glow (Up/Down arrows)**: Adjust the glow effect intensity
-- **Particles (+/- keys)**: Change particle density
-- **Space**: Add ripple effects for visual interest
-- **Click/right-click parameters**: Increase/decrease values
 
 ## Technical Details
 
