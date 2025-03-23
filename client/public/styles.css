@@ -44,10 +44,9 @@ header p {
 }
 
 header .help-text {
-    color: #64dfdf;
+    color: #a0e8e8;
     font-size: 0.9rem;
     opacity: 0.8;
-    animation: pulse 3s infinite alternate;
 }
 
 .canvas-container {
@@ -79,27 +78,25 @@ header .help-text {
 
 /* Parameter display integrated at bottom */
 .parameter-overlay {
-    position: relative; /* Changed from fixed to relative */
-    bottom: auto; /* Removed fixed positioning */
+    position: relative;
+    bottom: auto;
     left: auto;
     transform: none;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     z-index: 900;
-    background-color: rgba(20, 20, 35, 0.8);
-    padding: 15px 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(100, 223, 223, 0.4);
+    background-color: rgba(20, 20, 35, 0.9);
+    padding: 15px 20px;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
-    opacity: 0.9;
-    animation: glow-subtle 3s infinite alternate;
     max-width: 950px;
-    width: 95%; /* Use percentage width for better responsiveness */
-    box-sizing: border-box; /* Include padding in width calculation */
-    margin: 0 auto 20px auto; /* Added auto horizontal margins and bottom margin */
+    width: 95%;
+    box-sizing: border-box;
+    margin: 0 auto 20px auto;
 }
 
 .param-group {
@@ -113,11 +110,7 @@ header .help-text {
     padding-bottom: 5px; /* Add padding for scrollbar */
 }
 
-.parameter-overlay:hover {
-    opacity: 1;
-    transform: translateY(-3px); /* Removed translateX since we're not using fixed positioning */
-    box-shadow: 0 0 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(100, 223, 223, 0.5);
-}
+/* Removed hover effect animation */
 
 .status-info {
     display: flex;
@@ -125,11 +118,11 @@ header .help-text {
     justify-content: center;
     align-items: center;
     gap: 15px;
-    padding: 5px 15px;
+    padding: 5px 0;
     margin-top: 5px;
-    border-top: 1px solid rgba(100, 223, 223, 0.2);
+    border-top: 1px solid rgba(100, 223, 223, 0.15);
     font-size: 0.75rem;
-    color: #64dfdf;
+    color: #a0e8e8;
     text-align: center;
     width: 100%;
 }
@@ -138,41 +131,37 @@ header .help-text {
     display: flex;
     align-items: center;
     padding: 8px 15px;
-    border-radius: 12px;
-    background-color: rgba(20, 20, 35, 0.6);
-    backdrop-filter: blur(5px);
-    transition: all 0.3s ease;
-    box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
+    border-radius: 6px;
+    background-color: rgba(30, 30, 45, 0.7);
     flex: 0 0 auto;
-    margin: 5px;
+    margin: 4px;
     cursor: pointer;
-    height: 40px;
+    height: 38px;
     overflow: hidden;
     min-width: 200px;
     max-width: 220px;
     box-sizing: border-box;
     white-space: nowrap;
+    border: 1px solid rgba(100, 223, 223, 0.2);
 }
 
 .param-item:hover {
-    background-color: rgba(30, 30, 50, 0.7);
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(100, 223, 223, 0.3);
+    background-color: rgba(40, 40, 60, 0.8);
+    border-color: rgba(100, 223, 223, 0.4);
 }
 
 .param-item.highlight {
-    background-color: rgba(50, 50, 80, 0.7);
-    box-shadow: 0 0 20px rgba(100, 223, 223, 0.5);
-    animation: pulse-highlight 0.7s ease-out;
+    background-color: rgba(50, 50, 80, 0.8);
+    border-color: rgba(100, 223, 223, 0.6);
 }
 
 .key-hint {
-    background-color: rgba(100, 223, 223, 0.2);
+    background-color: rgba(100, 223, 223, 0.15);
     color: #64dfdf;
-    border-radius: 6px;
+    border-radius: 4px;
     padding: 3px 5px;
     font-size: 0.8rem;
-    font-weight: bold;
+    font-weight: normal;
     margin-right: 8px;
     min-width: 40px;
     max-width: 40px;
@@ -180,7 +169,7 @@ header .help-text {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 26px;
+    height: 24px;
     flex-shrink: 0;
     box-sizing: border-box;
 }
@@ -191,13 +180,13 @@ header .help-text {
 }
 
 .arrow-left, .arrow-up {
-    border-right: 1px solid rgba(100, 223, 223, 0.3);
+    border-right: 1px solid rgba(100, 223, 223, 0.2);
 }
 
 .param-label {
     font-size: 0.85rem;
-    color: #64dfdf;
-    font-weight: 600;
+    color: #a0e8e8;
+    font-weight: normal;
     margin-right: auto;
     white-space: nowrap;
     overflow: hidden;
@@ -207,39 +196,27 @@ header .help-text {
 }
 
 .param-value {
-    font-size: 1rem;
-    font-weight: bold;
+    font-size: 0.95rem;
+    font-weight: 500;
     color: white;
-    text-shadow: 0 0 10px rgba(100, 223, 223, 0.6);
     margin-left: 8px;
     min-width: 60px;
     max-width: 60px;
     text-align: right;
-    background-color: rgba(100, 223, 223, 0.1);
-    padding: 3px 5px;
-    border-radius: 6px;
+    background-color: rgba(100, 223, 223, 0.08);
+    padding: 3px 6px;
+    border-radius: 4px;
     flex-shrink: 0;
     box-sizing: border-box;
 }
 
-@keyframes pulse-highlight {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
-}
-
-@keyframes glow-subtle {
-    0% { box-shadow: 0 0 15px rgba(94, 96, 206, 0.2); }
-    50% { box-shadow: 0 0 20px rgba(100, 223, 223, 0.3); }
-    100% { box-shadow: 0 0 15px rgba(255, 102, 196, 0.2); }
-}
+/* Animations removed for simplicity */
 
 .user-info {
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
-    color: #64dfdf;
-    animation: pulse 2s infinite alternate;
+    color: #a0e8e8;
 }
 
 @keyframes pulse {
@@ -277,9 +254,7 @@ header .help-text {
     color: #f44336;
 }
 
-#activeUsers {
-    animation: pulse 2s infinite alternate;
-}
+/* Animation removed for simplicity */
 
 /* Responsive styles */
 @media (max-width: 1200px) {
@@ -427,47 +402,45 @@ header .help-text {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(94, 96, 206, 0.8);
+    background: rgba(30, 30, 45, 0.9);
     color: white;
-    padding: 10px 20px;
-    border-radius: 30px;
-    font-size: 1rem;
-    box-shadow: 0 0 20px rgba(100, 223, 223, 0.5);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    animation: float 2s infinite alternate ease-in-out;
+    border: 1px solid rgba(100, 223, 223, 0.2);
 }
 
 .seed-mode {
-    box-shadow: 0 0 30px rgba(255, 102, 196, 0.8) !important;
+    border-color: rgba(255, 102, 196, 0.6);
+    background: rgba(40, 40, 55, 0.9);
 }
 
-@keyframes float {
-    0% { transform: translateX(-50%) translateY(0); }
-    100% { transform: translateX(-50%) translateY(-10px); }
-}
+/* Float animation removed for simplicity */
 
 /* Keyboard controls UI */
 .key-feedback {
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(30, 30, 45, 0.9);
     color: white;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-family: Arial, sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
+    border: 1px solid rgba(100, 223, 223, 0.2);
 }
 
 .key {
     display: inline-block;
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-right: 8px;
-    font-weight: bold;
+    background-color: rgba(100, 223, 223, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-weight: normal;
 }
 
 .control-button.active {
@@ -477,7 +450,4 @@ header .help-text {
 
 /* Keyboard help has been removed - controls are shown directly on screen */
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* FadeIn animation removed for simplicity */
