@@ -17,13 +17,19 @@ The application is built with a modular component-based architecture:
 - **FractalLandscape**: Main controller that orchestrates all components
 - **TerrainGenerator**: Implements Diamond-Square algorithm for terrain generation
 - **TerrainRenderer**: Handles optimized triangle mesh rendering with adaptive detail
+- **TriangleRenderer**: Renders and optimizes triangle drawing operations
+- **QuadTreeSubdivider**: Intelligently subdivides terrain for variable detail levels
 - **ColorManager**: Handles color palettes and visual effects
-- **ParticleSystem**: Manages particle effects and animations
-- **RippleEffect**: Creates expanding ripple animations
-- **UIManager**: Handles user interface interactions and keyboard controls
+- **AnimationManager**: Controls animation timing and transitions
+- **UIManager**: Handles user interface interactions
+- **KeyboardManager**: Processes keyboard input and shortcuts
+- **ParameterDisplay**: Manages UI display of adjustable parameters
 - **ServerConnection**: Manages WebSocket communication with the server
 - **SyncManager**: Handles synchronized animation state across clients
-- **PerformanceMonitor**: Adapts detail level based on device performance
+- **PerformanceMonitor**: Main performance tracking and adaptation controller
+- **PerformanceAdapter**: Implements detail level adaptation algorithms
+- **PerformanceMetrics**: Tracks and stores performance-related metrics
+- **PerformanceDebugger**: Provides visualization of performance data
 
 ### CSS Organization
 - **base.css**: Core layout and canvas styles
@@ -44,6 +50,11 @@ The application uses an adaptive rendering system:
 - **Adaptive Grid Size**: Adjusts grid size based on device capabilities
 - **Detail Thresholds**: Higher detail areas are rendered with finer triangulation
 - **Z-Order Rendering**: Sorts triangles by height for correct visual layering
+- **Stable Sorting**: Uses position-based secondary sorting to prevent z-fighting
+- **Error Handling**: Comprehensive error detection for invalid coordinates or heights
+- **Degenerate Triangle Prevention**: Checks triangle validity before rendering
+- **Safe Value Clamping**: Prevents extreme values from causing rendering glitches
+- **Progressive Fault Recovery**: Gracefully handles rendering errors with fallbacks
 
 ## Synchronization System
 
@@ -63,12 +74,18 @@ The application includes several performance optimization techniques:
 
 - **Adaptive Detail Level**: Automatically adjusts triangle count based on device performance
 - **FPS Monitoring**: Tracks frame rate and adjusts detail accordingly
+- **Dynamic FPS Targeting**: Intelligent algorithm targets 35 FPS for optimal balance
 - **Triangle Batching**: Processes triangles in batches for improved performance
 - **Simplified Coloring**: Uses optimized color blending for triangles
 - **Selective Glow Effects**: Only applies intensive visual effects on important elements
 - **Fixed Time Step**: Uses consistent time steps for animation regardless of frame rate
 - **Render Time Tracking**: Monitors and optimizes render time per frame
 - **Adaptive Detail Thresholds**: Adjusts detail thresholds based on historical performance
+- **Smart High-FPS Handling**: Prevents detail level from getting stuck at high FPS values
+- **Oscillation Detection**: Identifies and corrects oscillating detail level changes
+- **Detail Change Dampening**: Uses exponential moving averages to smooth transitions
+- **Optimal Detail Reset**: Intelligently resets optimization parameters when FPS drifts too far
+- **Progressive Detail Scaling**: Uses non-linear scaling for detail adjustments based on performance
 
 ## Code Style Guidelines
 

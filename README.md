@@ -71,13 +71,26 @@ fractadelic/
 │   │       │   ├── FractalLandscape.js    # Main controller
 │   │       │   ├── TerrainGenerator.js    # Terrain algorithm
 │   │       │   ├── TerrainRenderer.js     # Optimized mesh rendering
+│   │       │   ├── TriangleRenderer.js    # Triangle drawing system
+│   │       │   ├── QuadTreeSubdivider.js  # Adaptive detail subdivider
 │   │       │   ├── ColorManager.js        # Color handling
-│   │       │   ├── ParticleSystem.js      # Particle effects
-│   │       │   ├── RippleEffect.js        # Ripple animations
+│   │       │   ├── AnimationManager.js    # Animation control
 │   │       │   ├── UIManager.js           # UI interactions
+│   │       │   ├── KeyboardManager.js     # Keyboard input handling
+│   │       │   ├── ParameterDisplay.js    # UI parameter display
 │   │       │   ├── ServerConnection.js    # WebSocket communication
 │   │       │   ├── SyncManager.js         # State synchronization
-│   │       │   └── PerformanceMonitor.js  # Adaptive performance
+│   │       │   ├── PerformanceMonitor.js  # Adaptive performance
+│   │       │   ├── PerformanceAdapter.js  # Detail level adaptation
+│   │       │   ├── PerformanceMetrics.js  # Performance data tracking
+│   │       │   └── PerformanceDebugger.js # Debug visualization
+│   │       ├── utils/         # Utility functions
+│   │       │   ├── MathUtils.js       # Mathematical helpers
+│   │       │   ├── ColorUtils.js      # Color processing utilities
+│   │       │   ├── PerformanceUtils.js # Performance optimization algorithms
+│   │       │   ├── AnimationUtils.js  # Animation helpers
+│   │       │   ├── UIUtils.js         # UI helper functions
+│   │       │   └── constants.js       # Application constants
 │   │       ├── fractal.js   # Module exports
 │   │       ├── main.js      # Main client code
 │   │       └── static-main.js # Static version
@@ -107,7 +120,8 @@ fractadelic/
 - Anti-flashing techniques for smooth terrain movement
 - Optimized triangle batching for performance
 - Adaptive detail level based on device performance
-- Client-side performance monitoring and optimization
+- Client-side performance monitoring and optimization with dynamic adaptation
+- Advanced FPS-targeting system with intelligent handling of high performance scenarios
 
 ## License
 
