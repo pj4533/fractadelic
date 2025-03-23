@@ -54,43 +54,51 @@ class ParticleSystem {
         });
     }
     
-    // Update all particles
+    // Update all particles with optimized algorithm
     updateParticles(deltaTime, width, height) {
-        // Update existing particles
+        // Cap delta time to avoid large jumps
+        const cappedDeltaTime = Math.min(deltaTime, 33);
+        
+        // Optimize by skipping updates at regular intervals for better performance
+        // Only process a subset of particles each frame
+        const updateInterval = Math.max(1, Math.floor(this.particles.length / 100));
+        
+        // Update existing particles more efficiently
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             
             // Update age
-            p.age += deltaTime;
+            p.age += cappedDeltaTime;
             if (p.age > p.lifetime) {
                 // Remove old particles
                 this.particles.splice(i, 1);
                 continue;
             }
             
-            // Move the particle
-            p.x += Math.cos(p.direction) * p.speed * (deltaTime / 100);
-            p.y += Math.sin(p.direction) * p.speed * (deltaTime / 100);
-            
-            // Change direction slightly - using seeded random for determinism
-            p.direction += (this.getSeededRandom() - 0.5) * 0.2;
-            
-            // Check boundaries
-            if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
-                // Bounce off edges
-                if (p.x < 0) p.direction = Math.PI - p.direction;
-                if (p.x > width) p.direction = Math.PI - p.direction;
-                if (p.y < 0) p.direction = -p.direction;
-                if (p.y > height) p.direction = -p.direction;
+            // Only update position on some frames for better performance
+            // This creates a more efficient particle system
+            if (i % updateInterval === 0 || p.burstParticle) {
+                // Move the particle with smaller steps
+                const moveFactor = cappedDeltaTime / 150; // Slower movement
+                p.x += Math.cos(p.direction) * p.speed * moveFactor;
+                p.y += Math.sin(p.direction) * p.speed * moveFactor;
                 
-                // Ensure it's inside
-                p.x = Math.max(0, Math.min(width, p.x));
-                p.y = Math.max(0, Math.min(height, p.y));
+                // Change direction less frequently and with smaller changes
+                if (Math.random() < 0.3) { // Only change direction sometimes
+                    p.direction += (this.getSeededRandom() - 0.5) * 0.1; // Smaller change
+                }
+                
+                // Simplified boundary check - just wrap around for better performance
+                if (p.x < 0) p.x = width;
+                if (p.x > width) p.x = 0;
+                if (p.y < 0) p.y = height;
+                if (p.y > height) p.y = 0;
             }
         }
         
-        // Add new particles if needed
-        while (this.particles.length < this.maxParticles) {
+        // Add new particles if needed - but limit how many we add per frame
+        const particlesToAdd = Math.min(5, this.maxParticles - this.particles.length);
+        for (let i = 0; i < particlesToAdd; i++) {
             this.addRandomParticle(width, height);
         }
     }

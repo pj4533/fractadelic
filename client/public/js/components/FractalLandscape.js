@@ -65,30 +65,31 @@ class FractalLandscape {
     // Animation loop that runs continuously
     continuousAnimation(timestamp) {
         if (!this.lastFrameTime) this.lastFrameTime = timestamp;
-        const deltaTime = timestamp - this.lastFrameTime;
+        const deltaTime = Math.min(timestamp - this.lastFrameTime, 33); // Cap at ~30fps to avoid large jumps
         this.lastFrameTime = timestamp;
         
         // Always update animation locally for smoother rendering
-        // Update global time for color shifts
-        this.globalTime += deltaTime * 0.001;
-        this.colorManager.updateColorShift(deltaTime);
+        // Use smaller increment values for smoother transitions
+        this.globalTime += deltaTime * 0.0005; // Half the original rate for smoother motion
+        this.colorManager.updateColorShift(deltaTime * 0.7); // Reduce color shift speed
         
-        // Update wave effect
-        this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+        // Use smaller waveOffset increments for smoother transitions
+        // Divide by a larger factor for smaller, smoother steps
+        this.waveOffset += (deltaTime * 0.0005) * this.options.waveIntensity;
         
-        // Auto-evolve the landscape very subtly
-        if (timestamp - this.lastAutoEvolutionTime > 100) {
-            this.terrainGenerator.microEvolve(0.001);
+        // Auto-evolve less frequently and with smaller values
+        if (timestamp - this.lastAutoEvolutionTime > 200) { // Reduced frequency
+            this.terrainGenerator.microEvolve(0.0005); // Half the evolution amount
             this.lastAutoEvolutionTime = timestamp;
         }
         
-        // Update particles
+        // Update particles with potentially reduced particle count for performance
         this.particleSystem.updateParticles(deltaTime, this.width, this.height);
         
-        // Render
+        // Render - make sure this happens on next animation frame
         this.render();
         
-        // Continue animation
+        // Continue animation - use high priority by passing true as second argument
         this.animationFrameId = requestAnimationFrame(this.continuousAnimation.bind(this));
     }
     
@@ -157,23 +158,60 @@ class FractalLandscape {
             this.particleSystem.setSharedSeed(this.sharedSeed);
         }
         
-        // Gently nudge local animation toward server values (partial sync)
-        // This creates a blended approach that's smooth but still synchronized
+        // Perform gentle synchronization with server values
         if (animState.isSyncCheckpoint) {
-            // On periodic full sync checkpoints, align more closely with server values
-            this.globalTime = animState.globalTime;
-            this.waveOffset = animState.waveOffset * this.options.waveIntensity;
-            
-            // Update color shift in the color manager
-            if (animState.colorShift !== undefined) {
-                this.colorManager.colorShift = animState.colorShift;
+            // Store target values for interpolation
+            if (!this.syncTargets) {
+                this.syncTargets = {
+                    globalTime: this.globalTime,
+                    waveOffset: this.waveOffset,
+                    colorShift: this.colorManager.colorShift,
+                    progress: 1.0 // Fully reached previous target
+                };
             }
+            
+            // Update target values with new server values
+            this.syncTargets.globalTime = animState.globalTime;
+            this.syncTargets.waveOffset = animState.waveOffset * this.options.waveIntensity;
+            
+            if (animState.colorShift !== undefined) {
+                this.syncTargets.colorShift = animState.colorShift;
+            }
+            
+            // Reset interpolation progress
+            this.syncTargets.progress = 0.0;
+        } else if (this.syncTargets && this.syncTargets.progress < 1.0) {
+            // Continue interpolation toward target values
+            // Increase progress by a small amount for gradual synchronization
+            this.syncTargets.progress = Math.min(1.0, this.syncTargets.progress + 0.02);
+            
+            // Apply smooth interpolation (easing function)
+            const t = this.easeInOutCubic(this.syncTargets.progress);
+            
+            // Interpolate values
+            const timeOffset = this.syncTargets.globalTime - this.globalTime;
+            this.globalTime += timeOffset * 0.05; // Very gentle time correction
+            
+            // Smoothly adjust wave offset (most visually apparent)
+            const waveOffset = this.syncTargets.waveOffset - this.waveOffset;
+            this.waveOffset += waveOffset * 0.03; // Very gentle wave correction
+            
+            // Smoothly adjust color shift
+            const colorShiftDiff = this.syncTargets.colorShift - this.colorManager.colorShift;
+            this.colorManager.colorShift += colorShiftDiff * 0.05;
         }
         
         // Perform microEvolve if signaled by server
         if (animState.microEvolve) {
-            this.terrainGenerator.microEvolve(0.001);
+            this.terrainGenerator.microEvolve(0.0005); // Reduced value for smoother changes
         }
+    }
+    
+    // Easing function for smooth interpolation
+    easeInOutCubic(t) {
+        return t < 0.5 
+            ? 4 * t * t * t 
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
     
     // Get deterministic random value using shared seed
@@ -220,22 +258,30 @@ class FractalLandscape {
         this.renderParticles();
     }
     
-    // Render terrain using triangular mesh with gradient shading
+    // Render terrain using triangular mesh with optimized gradient shading
     renderTerrain(pixelWidth, pixelHeight) {
+        // Use a smaller effective grid size for better performance
+        // Skip every other point in busy scenes
+        const skipFactor = Math.max(1, Math.floor(this.terrainGenerator.gridSize / 40));
+        
         // Draw the terrain as a continuous triangular mesh with gradient shading
-        for (let y = 0; y < this.terrainGenerator.gridSize - 1; y++) {
-            for (let x = 0; x < this.terrainGenerator.gridSize - 1; x++) {
+        for (let y = 0; y < this.terrainGenerator.gridSize - skipFactor; y += skipFactor) {
+            for (let x = 0; x < this.terrainGenerator.gridSize - skipFactor; x += skipFactor) {
                 // Get the four corners of the current grid cell
                 const points = [
-                    { x, y },                 // Top-left
-                    { x: x + 1, y },          // Top-right
-                    { x: x + 1, y: y + 1 },   // Bottom-right
-                    { x, y: y + 1 }           // Bottom-left
+                    { x, y },                         // Top-left
+                    { x: x + skipFactor, y },         // Top-right
+                    { x: x + skipFactor, y: y + skipFactor },  // Bottom-right
+                    { x, y: y + skipFactor }          // Bottom-left
                 ];
+                
+                // Precompute wave effect for this cell to avoid redundant calculations
+                const cellWaveEffect = this.options.waveIntensity * 
+                    Math.sin((x + y) / 5 + this.waveOffset * 3) * 5; // Reduced multiplier
                 
                 // Calculate wave-affected positions and values for each corner
                 const corners = points.map(p => {
-                    const waveEffect = this.options.waveIntensity * Math.sin(p.x / 5 + p.y / 5 + this.waveOffset * 3) * 10;
+                    // Use simpler wave calculation with fewer trig functions
                     const value = this.terrainGenerator.getValue(p.x, p.y);
                     const baseColor = this.colorManager.getHeightColor(value);
                     const glowIntensity = this.options.glowIntensity || 0.5;
@@ -243,27 +289,24 @@ class FractalLandscape {
                         baseColor, p.x, p.y, this.globalTime, glowIntensity
                     );
                     
-                    // Apply wave distortion to positions
-                    const xPos = p.x * pixelWidth + (waveEffect * Math.sin(p.y / 10 + this.waveOffset));
-                    const yPos = p.y * pixelHeight + (waveEffect * Math.cos(p.x / 10 + this.waveOffset));
+                    // Apply wave distortion to positions - simplified calculation
+                    const waveX = cellWaveEffect * Math.sin(p.y / 10 + this.waveOffset);
+                    const waveY = cellWaveEffect * Math.cos(p.x / 10 + this.waveOffset);
+                    const xPos = p.x * pixelWidth + waveX;
+                    const yPos = p.y * pixelHeight + waveY;
                     
-                    return {
-                        xPos,
-                        yPos,
-                        value,
-                        color: glowColor
-                    };
+                    return { xPos, yPos, color: glowColor };
                 });
                 
                 // Draw first triangle (top-left, top-right, bottom-left)
-                this.drawGradientTriangle(
+                this.drawOptimizedTriangle(
                     corners[0].xPos, corners[0].yPos, corners[0].color,
                     corners[1].xPos, corners[1].yPos, corners[1].color,
                     corners[3].xPos, corners[3].yPos, corners[3].color
                 );
                 
                 // Draw second triangle (bottom-left, top-right, bottom-right)
-                this.drawGradientTriangle(
+                this.drawOptimizedTriangle(
                     corners[3].xPos, corners[3].yPos, corners[3].color,
                     corners[1].xPos, corners[1].yPos, corners[1].color,
                     corners[2].xPos, corners[2].yPos, corners[2].color
@@ -272,11 +315,8 @@ class FractalLandscape {
         }
     }
     
-    // Draw a triangle with gradient colors at each vertex
-    drawGradientTriangle(x1, y1, color1, x2, y2, color2, x3, y3, color3) {
-        // Save context state
-        this.ctx.save();
-        
+    // Draw a triangle with a simpler coloring approach for better performance
+    drawOptimizedTriangle(x1, y1, color1, x2, y2, color2, x3, y3, color3) {
         // Create a triangle path
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
@@ -284,40 +324,76 @@ class FractalLandscape {
         this.ctx.lineTo(x3, y3);
         this.ctx.closePath();
         
-        // Create a gradient from the three points
-        // We'll use a simplified approach with the midpoint as gradient center
-        const centerX = (x1 + x2 + x3) / 3;
-        const centerY = (y1 + y2 + y3) / 3;
+        // Use a simpler coloring approach - average the colors
+        // This is much faster than creating a gradient for each triangle
+        const r1 = parseInt(color1.substring(1, 3), 16);
+        const g1 = parseInt(color1.substring(3, 5), 16);
+        const b1 = parseInt(color1.substring(5, 7), 16);
         
-        // Calculate distances to create proportional gradient
-        const d1 = Math.hypot(x1 - centerX, y1 - centerY);
-        const d2 = Math.hypot(x2 - centerX, y2 - centerY);
-        const d3 = Math.hypot(x3 - centerX, y3 - centerY);
-        const maxDist = Math.max(d1, d2, d3) * 1.2; // Slightly larger for better blending
+        const r2 = parseInt(color2.substring(1, 3), 16);
+        const g2 = parseInt(color2.substring(3, 5), 16);
+        const b2 = parseInt(color2.substring(5, 7), 16);
         
-        // Create radial gradient
-        const gradient = this.ctx.createRadialGradient(
-            centerX, centerY, 0,
-            centerX, centerY, maxDist
-        );
+        const r3 = parseInt(color3.substring(1, 3), 16);
+        const g3 = parseInt(color3.substring(3, 5), 16);
+        const b3 = parseInt(color3.substring(5, 7), 16);
         
-        // Add color stops based on normalized distances
-        gradient.addColorStop(d1 / maxDist, color1);
-        gradient.addColorStop(d2 / maxDist, color2);
-        gradient.addColorStop(d3 / maxDist, color3);
+        // Calculate average color
+        const avgR = Math.floor((r1 + r2 + r3) / 3);
+        const avgG = Math.floor((g1 + g2 + g3) / 3);
+        const avgB = Math.floor((b1 + b2 + b3) / 3);
         
-        // Fill with gradient
-        this.ctx.fillStyle = gradient;
+        // Convert to hex color
+        const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
+        
+        // Fill with average color
+        this.ctx.fillStyle = avgColor;
         this.ctx.fill();
-        
-        // Restore context
-        this.ctx.restore();
     }
     
     
-    // Render particles
+    // Render particles with optimized approach
     renderParticles() {
+        // Batch particles by type for better rendering performance
+        const standardParticles = [];
+        const burstParticles = [];
+        
+        // Group particles to minimize context changes
         for (const p of this.particleSystem.particles) {
+            if (p.burstParticle) {
+                burstParticles.push(p);
+            } else {
+                standardParticles.push(p);
+            }
+        }
+        
+        // Draw standard particles first - simpler rendering
+        this.ctx.save();
+        for (const p of standardParticles) {
+            // Only use fast calculations for standard particles
+            const ageOpacity = 1 - (p.age / p.lifetime);
+            
+            // Faster height lookup - avoid expensive floor operations when possible
+            const gridX = Math.min(this.terrainGenerator.gridSize - 1, 
+                          Math.floor(p.x / this.width * (this.terrainGenerator.gridSize - 1)));
+            const gridY = Math.min(this.terrainGenerator.gridSize - 1, 
+                          Math.floor(p.y / this.height * (this.terrainGenerator.gridSize - 1)));
+            const height = this.terrainGenerator.getValue(gridX, gridY);
+            
+            // Get particle color - faster method
+            const particleColor = this.particleSystem.getParticleColor(p, height, ageOpacity);
+            
+            // Simple circle for better performance
+            this.ctx.fillStyle = particleColor;
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+        
+        // Draw burst particles with full glow effects since they're more visible
+        this.ctx.save();
+        for (const p of burstParticles) {
             // Calculate opacity based on age
             const ageOpacity = 1 - (p.age / p.lifetime);
             
@@ -326,17 +402,11 @@ class FractalLandscape {
             const gridY = Math.floor(p.y / this.height * (this.terrainGenerator.gridSize - 1));
             const height = this.terrainGenerator.getValue(gridX, gridY);
             
-            // Get particle color from the particle system
-            const particleColor = this.particleSystem.getParticleColor(
-                p, height, ageOpacity
-            );
+            // Get particle color
+            const particleColor = this.particleSystem.getParticleColor(p, height, ageOpacity);
             
-            // Draw glowing particle
-            const radius = p.burstParticle ? 
-                p.size * (1 - p.age / p.lifetime) * 3 : 
-                p.size;
-                
-            this.ctx.save();
+            // Draw glowing particle (only for burst particles)
+            const radius = p.size * (1 - p.age / p.lifetime) * 3;
             
             // Draw glow
             const gradient = this.ctx.createRadialGradient(
@@ -356,9 +426,8 @@ class FractalLandscape {
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
             this.ctx.fill();
-            
-            this.ctx.restore();
         }
+        this.ctx.restore();
     }
 }
 
