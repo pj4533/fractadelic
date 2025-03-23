@@ -352,10 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize parameter displays
     function initializeDisplays() {
-        updateParameterDisplay('roughness', controls.roughness.toFixed(2));
         updateParameterDisplay('palette', controls.palette);
-        updateParameterDisplay('evolution', controls.evolveSpeed);
-        updateParameterDisplay('seeds', controls.seedCount);
+        updateParameterDisplay('wave', controls.waveIntensity.toFixed(2));
+        updateParameterDisplay('glow', controls.glowIntensity.toFixed(2));
+        updateParameterDisplay('particles', controls.particleDensity.toFixed(2));
     }
     
     // Call initialization
@@ -366,35 +366,36 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ignore if user is typing in an input field
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
-        switch (e.key.toLowerCase()) {
-            // Wave flow controls (W/S)
-            case 'w':
+        switch (e.key) {
+            // Wave flow controls (Left/Right arrows)
+            case 'ArrowRight':
                 updateWaveIntensity(0.05);
-                showKeyFeedback('W', 'Increase wave flow');
+                showKeyFeedback('→', 'Increase wave flow');
                 break;
-            case 's':
+            case 'ArrowLeft':
                 updateWaveIntensity(-0.05);
-                showKeyFeedback('S', 'Decrease wave flow');
+                showKeyFeedback('←', 'Decrease wave flow');
                 break;
                 
-            // Glow intensity controls (G/H)
-            case 'g':
+            // Glow intensity controls (Up/Down arrows)
+            case 'ArrowUp':
                 updateGlowIntensity(0.05);
-                showKeyFeedback('G', 'Increase glow intensity');
+                showKeyFeedback('↑', 'Increase glow intensity');
                 break;
-            case 'h':
+            case 'ArrowDown':
                 updateGlowIntensity(-0.05);
-                showKeyFeedback('H', 'Decrease glow intensity');
+                showKeyFeedback('↓', 'Decrease glow intensity');
                 break;
                 
-            // Particle density controls (D/F)
-            case 'd':
+            // Particle density controls (+/-)
+            case '+':
+            case '=': // = key is + without shift
                 updateParticleDensity(0.05);
-                showKeyFeedback('D', 'Increase particle density');
+                showKeyFeedback('+', 'Increase particle density');
                 break;
-            case 'f':
+            case '-':
                 updateParticleDensity(-0.05);
-                showKeyFeedback('F', 'Decrease particle density');
+                showKeyFeedback('-', 'Decrease particle density');
                 break;
                 
             // Seed points with different intensities
@@ -476,9 +477,9 @@ document.addEventListener('DOMContentLoaded', () => {
     keyboardHelp.innerHTML = `
         <h3>Keyboard Controls</h3>
         <ul>
-            <li><strong>W/S</strong> - Increase/decrease wave flow</li>
-            <li><strong>G/H</strong> - Increase/decrease glow intensity</li>
-            <li><strong>D/F</strong> - Increase/decrease particle density</li>
+            <li><strong>←/→</strong> - Decrease/increase wave flow</li>
+            <li><strong>↑/↓</strong> - Increase/decrease glow intensity</li>
+            <li><strong>+/-</strong> - Increase/decrease particle density</li>
             <li><strong>P</strong> - Change color palette</li>
             <li><strong>Space</strong> - Add random seed point</li>
             <li><strong>1/2/3</strong> - Add small/medium/large seed points</li>
