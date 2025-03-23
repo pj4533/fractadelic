@@ -12,6 +12,9 @@ A collaborative real-time fractal landscape generator where users can create and
 - Wave, glow, and particle visual effects
 - Responsive design for all device sizes
 - Deterministic randomness for consistent experiences
+- Adaptive performance optimization for all devices
+- Anti-flashing techniques for smooth animations
+- Quadtree-based adaptive detail rendering
 
 ## Getting Started
 
@@ -63,11 +66,16 @@ fractadelic/
 │   │   │   └── index.css    # CSS entry point
 │   │   └── js/              # JavaScript files
 │   │       ├── components/  # Modular components
-│   │       │   ├── FractalLandscape.js # Main controller
-│   │       │   ├── TerrainGenerator.js # Terrain algorithm
-│   │       │   ├── ColorManager.js     # Color handling
-│   │       │   ├── ParticleSystem.js   # Particle effects
-│   │       │   └── RippleEffect.js     # Ripple animations
+│   │       │   ├── FractalLandscape.js    # Main controller
+│   │       │   ├── TerrainGenerator.js    # Terrain algorithm
+│   │       │   ├── TerrainRenderer.js     # Optimized mesh rendering
+│   │       │   ├── ColorManager.js        # Color handling
+│   │       │   ├── ParticleSystem.js      # Particle effects
+│   │       │   ├── RippleEffect.js        # Ripple animations
+│   │       │   ├── UIManager.js           # UI interactions
+│   │       │   ├── ServerConnection.js    # WebSocket communication
+│   │       │   ├── SyncManager.js         # State synchronization
+│   │       │   └── PerformanceMonitor.js  # Adaptive performance
 │   │       ├── fractal.js   # Module exports
 │   │       ├── main.js      # Main client code
 │   │       └── static-main.js # Static version
@@ -93,7 +101,11 @@ fractadelic/
 - Server-side animation state broadcast at 60fps
 - Deterministic pseudo-random number generation for visual consistency
 - Diamond-Square algorithm for fractal terrain generation
-- Responsive CSS with modular design
+- Quadtree-based adaptive detail rendering system
+- Anti-flashing techniques for smooth terrain movement
+- Optimized triangle batching for performance
+- Adaptive detail level based on device performance
+- Client-side performance monitoring and optimization
 
 ## License
 
