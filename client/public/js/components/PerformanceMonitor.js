@@ -506,7 +506,10 @@ class PerformanceMonitor {
         ctx.textBaseline = 'top';
         
         // Draw performance metrics with enhanced info
-        ctx.fillText(`FPS: ${Math.round(this.perfData.fps)} / Target: ${this.perfData.targetFps}`, 10, 10);
+        const avgDisplayFps = this.perfData.fpsHistory.length > 0 
+            ? Math.round(this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / this.perfData.fpsHistory.length)
+            : Math.round(this.perfData.fps);
+        ctx.fillText(`FPS: ${Math.round(this.perfData.fps)} (avg: ${avgDisplayFps})`, 10, 10);
         
         // Calculate average triangle count
         const avgTriangles = this.perfData.triangleHistory.length > 0 
@@ -530,9 +533,12 @@ class PerformanceMonitor {
         ctx.fillText(`Triangles: ${this.perfData.triangleCount} / Target: ${this.perfData.triangleTarget}`, 10, 25);
         ctx.fillStyle = '#ffffff'; // Reset color
         
-        // Show target FPS info
-        const fpsDistance = Math.abs(Math.round(this.perfData.fps) - this.perfData.targetFps);
-        ctx.fillText(`Target FPS: ${this.perfData.targetFps} (± ${fpsDistance})`, 10, 40);
+        // Show target FPS info - use average FPS for more stable display
+        const avgUIFps = this.perfData.fpsHistory.length > 0 
+            ? this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / this.perfData.fpsHistory.length
+            : this.perfData.fps;
+        const fpsDistance = Math.abs(Math.round(avgUIFps) - this.perfData.targetFps);
+        ctx.fillText(`Target FPS: ${this.perfData.targetFps} (diff: ${fpsDistance})`, 10, 40);
         
         // Add color indicators for target direction
         if (this.perfData.optimalDetailFound) {
