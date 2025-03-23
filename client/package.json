@@ -1,0 +1,16 @@
+{
+  "name": "fractadelic-client",
+  "version": "1.0.0",
+  "description": "Client for Fractadelic collaborative fractal generator",
+  "private": true,
+  "dependencies": {
+    "socket.io-client": "^4.5.4"
+  },
+  "scripts": {
+    "start": "serve -s public",
+    "dev": "serve public"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

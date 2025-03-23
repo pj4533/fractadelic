@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractadelic - Fractal Landscapes (Static Version)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Fractadelic</h1>
+            <p>Create evolving fractal landscapes (Static GitHub Pages Version)</p>
+        </header>
+        
+        <div class="canvas-container">
+            <canvas id="fractalCanvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="colorPalette">Color Palette:</label>
+                <select id="colorPalette">
+                    <option value="earth">Earth</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="fire">Fire</option>
+                    <option value="forest">Forest</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="roughness">Roughness:</label>
+                <input type="range" id="roughness" min="0.1" max="1.0" step="0.1" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="seed">Seed Point:</label>
+                <button id="addSeed">Add Seed</button>
+            </div>
+            
+            <div class="control-group">
+                <label for="evolveSpeed">Evolution Speed:</label>
+                <input type="range" id="evolveSpeed" min="1" max="10" value="5">
+            </div>
+        </div>
+        
+        <div class="user-info">
+            <p>This is the static version for GitHub Pages. For the collaborative experience, check the main repository.</p>
+        </div>
+    </div>
+    
+    <script src="js/fractal.js"></script>
+    <script src="js/static-main.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "fractadelic",
+  "version": "1.0.0",
+  "description": "Collaborative real-time fractal landscape generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "install-server": "npm install",
+    "install-client": "npm install --prefix client",
+    "install-all": "npm run install-server && npm run install-client",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm run install-client"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=14.x"
+  },
+  "author": "",
+  "license": "MIT"
+}
