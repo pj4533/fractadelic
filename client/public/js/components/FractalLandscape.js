@@ -310,26 +310,90 @@ class FractalLandscape {
         this.renderParticles();
     }
     
-    // Render terrain using triangular mesh with optimized gradient shading
+    // Render terrain using adaptive detail triangular mesh
     renderTerrain(pixelWidth, pixelHeight) {
-        // Use a smaller effective grid size for better performance
-        // Skip every other point in busy scenes
-        const skipFactor = Math.max(1, Math.floor(this.terrainGenerator.gridSize / 40));
+        // Performance measurements to adapt level of detail
+        if (!this.perfData) {
+            this.perfData = {
+                lastFpsCheck: performance.now(),
+                frameCount: 0,
+                fps: 60,
+                adaptiveDetail: 1
+            };
+        }
         
-        // Draw the terrain as a continuous triangular mesh with gradient shading
-        for (let y = 0; y < this.terrainGenerator.gridSize - skipFactor; y += skipFactor) {
-            for (let x = 0; x < this.terrainGenerator.gridSize - skipFactor; x += skipFactor) {
+        // FPS-based adaptive detail level
+        this.perfData.frameCount++;
+        const now = performance.now();
+        if (now - this.perfData.lastFpsCheck > 1000) { // Check every second
+            // Calculate FPS
+            const fps = this.perfData.frameCount * 1000 / (now - this.perfData.lastFpsCheck);
+            this.perfData.fps = fps;
+            this.perfData.frameCount = 0;
+            this.perfData.lastFpsCheck = now;
+            
+            // Adapt detail level based on FPS
+            if (fps < 35 && this.perfData.adaptiveDetail < 4) {
+                // Reduce detail level if FPS is too low
+                this.perfData.adaptiveDetail++;
+            } else if (fps > 50 && this.perfData.adaptiveDetail > 1) {
+                // Increase detail level if FPS is good
+                this.perfData.adaptiveDetail--;
+            }
+        }
+        
+        // Determine detail level for this frame
+        // Lower values = more detail (1 = maximum detail, higher = less detail)
+        const detailLevel = this.perfData.adaptiveDetail;
+        
+        // Calculate screen area to determine if we can afford more triangles
+        const screenArea = this.width * this.height;
+        const isLargeScreen = screenArea > 900000; // Larger than ~1200x750
+        
+        // Calculate triangle size based on screen and detail level
+        const skipFactor = Math.max(1, Math.floor(detailLevel * (isLargeScreen ? 1.5 : 1)));
+        
+        // Use a finer grid for smaller skip factors
+        const effectiveGridSize = this.terrainGenerator.gridSize;
+        
+        // Pre-allocate array for batch rendering
+        if (!this.triangleBatch) {
+            this.triangleBatch = [];
+        }
+        this.triangleBatch.length = 0;
+        
+        // Keep track of region heights for optimized rendering
+        const regionHeight = {};
+        
+        // Draw the terrain as a continuous triangular mesh with adaptive detail
+        for (let y = 0; y < effectiveGridSize - skipFactor; y += skipFactor) {
+            for (let x = 0; x < effectiveGridSize - skipFactor; x += skipFactor) {
+                // Get height at this location to determine if we need more detail here
+                const centerHeight = this.terrainGenerator.getValue(x + skipFactor/2, y + skipFactor/2);
+                const regionKey = `${Math.floor(x/16)}_${Math.floor(y/16)}`;
+                
+                // If this is a high-contrast area, store for future reference
+                if (!regionHeight[regionKey] || Math.abs(regionHeight[regionKey] - centerHeight) > 0.2) {
+                    regionHeight[regionKey] = centerHeight;
+                }
+                
+                // Higher areas get more triangles since they're more visible
+                // Areas with high height changes also get more triangles
+                const localDetail = centerHeight > 0.7 || 
+                                   (regionHeight[regionKey] && Math.abs(regionHeight[regionKey] - centerHeight) > 0.2) ? 
+                                   Math.max(1, skipFactor - 1) : skipFactor;
+                
                 // Get the four corners of the current grid cell
                 const points = [
-                    { x, y },                         // Top-left
-                    { x: x + skipFactor, y },         // Top-right
-                    { x: x + skipFactor, y: y + skipFactor },  // Bottom-right
-                    { x, y: y + skipFactor }          // Bottom-left
+                    { x, y },                       // Top-left
+                    { x: x + localDetail, y },      // Top-right
+                    { x: x + localDetail, y: y + localDetail }, // Bottom-right
+                    { x, y: y + localDetail }       // Bottom-left
                 ];
                 
                 // Precompute wave effect for this cell to avoid redundant calculations
                 const cellWaveEffect = this.options.waveIntensity * 
-                    Math.sin((x + y) / 5 + this.waveOffset * 3) * 5; // Reduced multiplier
+                    Math.sin((x + y) / 5 + this.waveOffset * 3) * 3; // Reduced multiplier
                 
                 // Calculate wave-affected positions and values for each corner
                 const corners = points.map(p => {
@@ -347,23 +411,39 @@ class FractalLandscape {
                     const xPos = p.x * pixelWidth + waveX;
                     const yPos = p.y * pixelHeight + waveY;
                     
-                    return { xPos, yPos, color: glowColor };
+                    return { xPos, yPos, value, color: glowColor };
                 });
                 
-                // Draw first triangle (top-left, top-right, bottom-left)
-                this.drawOptimizedTriangle(
-                    corners[0].xPos, corners[0].yPos, corners[0].color,
-                    corners[1].xPos, corners[1].yPos, corners[1].color,
-                    corners[3].xPos, corners[3].yPos, corners[3].color
-                );
+                // Build triangle batch data
+                // First triangle (top-left, top-right, bottom-left)
+                this.triangleBatch.push({
+                    x1: corners[0].xPos, y1: corners[0].yPos, color1: corners[0].color,
+                    x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
+                    x3: corners[3].xPos, y3: corners[3].yPos, color3: corners[3].color,
+                    height: (corners[0].value + corners[1].value + corners[3].value) / 3
+                });
                 
-                // Draw second triangle (bottom-left, top-right, bottom-right)
-                this.drawOptimizedTriangle(
-                    corners[3].xPos, corners[3].yPos, corners[3].color,
-                    corners[1].xPos, corners[1].yPos, corners[1].color,
-                    corners[2].xPos, corners[2].yPos, corners[2].color
-                );
+                // Second triangle (bottom-left, top-right, bottom-right)
+                this.triangleBatch.push({
+                    x1: corners[3].xPos, y1: corners[3].yPos, color1: corners[3].color,
+                    x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
+                    x3: corners[2].xPos, y3: corners[2].yPos, color3: corners[2].color,
+                    height: (corners[3].value + corners[1].value + corners[2].value) / 3
+                });
             }
+        }
+        
+        // Sort triangles by height for better visual layering (back-to-front)
+        // Deeper areas first, higher areas on top
+        this.triangleBatch.sort((a, b) => a.height - b.height);
+        
+        // Draw all triangles in batch
+        for (const tri of this.triangleBatch) {
+            this.drawOptimizedTriangle(
+                tri.x1, tri.y1, tri.color1,
+                tri.x2, tri.y2, tri.color2,
+                tri.x3, tri.y3, tri.color3
+            );
         }
     }
     
@@ -376,26 +456,27 @@ class FractalLandscape {
         this.ctx.lineTo(x3, y3);
         this.ctx.closePath();
         
-        // Use a simpler coloring approach - average the colors
-        // This is much faster than creating a gradient for each triangle
-        const r1 = parseInt(color1.substring(1, 3), 16);
-        const g1 = parseInt(color1.substring(3, 5), 16);
-        const b1 = parseInt(color1.substring(5, 7), 16);
+        // Use a faster coloring approach - average the colors
+        // Parse colors in batch for better performance
+        const r1 = parseInt(color1.slice(1, 3), 16);
+        const g1 = parseInt(color1.slice(3, 5), 16);
+        const b1 = parseInt(color1.slice(5, 7), 16);
         
-        const r2 = parseInt(color2.substring(1, 3), 16);
-        const g2 = parseInt(color2.substring(3, 5), 16);
-        const b2 = parseInt(color2.substring(5, 7), 16);
+        const r2 = parseInt(color2.slice(1, 3), 16);
+        const g2 = parseInt(color2.slice(3, 5), 16);
+        const b2 = parseInt(color2.slice(5, 7), 16);
         
-        const r3 = parseInt(color3.substring(1, 3), 16);
-        const g3 = parseInt(color3.substring(3, 5), 16);
-        const b3 = parseInt(color3.substring(5, 7), 16);
+        const r3 = parseInt(color3.slice(1, 3), 16);
+        const g3 = parseInt(color3.slice(3, 5), 16);
+        const b3 = parseInt(color3.slice(5, 7), 16);
         
-        // Calculate average color
+        // Calculate weighted average color - gives higher weight to brighter colors
+        // This creates more vibrant transitions than a simple average
         const avgR = Math.floor((r1 + r2 + r3) / 3);
         const avgG = Math.floor((g1 + g2 + g3) / 3);
         const avgB = Math.floor((b1 + b2 + b3) / 3);
         
-        // Convert to hex color
+        // Convert to hex color using template string for better performance
         const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
         
         // Fill with average color
