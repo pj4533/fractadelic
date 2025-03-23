@@ -24,12 +24,18 @@ class PerformanceMonitor {
             optimalDetailFound: false, // Flag when we've found a good stable value
             targetFps: 55,         // Target FPS for optimal experience
             lastDirection: 'none', // Track last change direction to detect oscillation
-            maxAllowedDetailChange: 0.05, // Limit maximum change in a single step
+            maxAllowedDetailChange: 0.25, // Starting value for maximum allowed change - will adapt based on convergence
+            initialMaxAllowedDetailChange: 0.25, // Keep track of the initial value - much higher to allow fast convergence
+            minAllowedDetailChange: 0.02, // Minimum value for detail change when fully converged
             minTriangleTarget: 10000,    // Minimum acceptable triangle count
             maxTriangleTarget: 20000,    // Maximum acceptable triangle count
             preferredTriangleRange: {min: 12000, max: 18000}, // Ideal range to stabilize within
             previousDetailLevels: [0.15, 0.15, 0.15], // Track previous levels for exponential smoothing
-            smoothingFactor: 0.6   // Exponential smoothing factor (higher = less smoothing)
+            smoothingFactor: 0.4,  // Increased smoothing (lower value = more smoothing)
+            stableThreshold: 0.005, // Threshold for considering a change significant
+            oscillationBuffer: [], // Track recent direction changes to detect oscillation patterns
+            deadZoneCounter: 0,    // Count frames spent in the dead zone (no changes)
+            deadZoneThreshold: 10  // Number of frames to stay in dead zone before allowing changes
         };
     }
     
@@ -73,10 +79,10 @@ class PerformanceMonitor {
                 // Update triangle history for analysis
                 this.updateTriangleHistory(this.perfData.triangleCount);
                 
-                // Check if we're within the preferred triangle range
-                const inPreferredRange = 
-                    this.perfData.triangleCount >= this.perfData.preferredTriangleRange.min && 
-                    this.perfData.triangleCount <= this.perfData.preferredTriangleRange.max;
+                // Calculate if we're near optimal FPS instead of using fixed triangle range
+                const currentAvgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                                     this.perfData.fpsHistory.length;
+                const inOptimalFpsRange = currentAvgFps >= this.perfData.targetFps - 5 && currentAvgFps <= this.perfData.targetFps + 5;
                 
                 // Check for extreme values to avoid
                 const atExtremeLow = this.perfData.triangleCount < this.perfData.minTriangleTarget;
@@ -89,91 +95,175 @@ class PerformanceMonitor {
                     let changeDirection = "none";
                     let changeReason = "";
                     
-                    // If we're at extreme values, prioritize moving away from extremes
-                    if (atExtremeLow) {
-                        // We're too low, increase detail regardless of FPS (unless critically low FPS)
-                        if (avgFps > 35) {
-                            baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.85);
-                            changeDirection = "up";
-                            changeReason = "extreme-low";
-                        }
-                    } else if (atExtremeHigh) {
-                        // We're too high, decrease detail regardless of FPS (unless excellent FPS)
-                        if (avgFps < 58) {
-                            baseTargetDetail = this.perfData.adaptiveDetail * 1.25;
-                            changeDirection = "down";
-                            changeReason = "extreme-high";
-                        }
-                    }
-                    // If we're already in a good range, make decisions based on FPS
-                    else if (inPreferredRange) {
-                        if (avgFps < 45) {
-                            // FPS is too low, reduce detail moderately
-                            baseTargetDetail = this.perfData.adaptiveDetail * 1.15;
-                            changeDirection = "down";
-                            changeReason = "fps-low";
-                        } else if (avgFps > 58 && avgFps < 65) {
-                            // FPS is good but we have headroom, increase detail slightly
-                            baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.95);
-                            changeDirection = "up";
-                            changeReason = "fps-high";
-                        } else if (avgFps >= 50 && avgFps <= 58) {
-                            // Perfect FPS range - mark as optimal
-                            this.perfData.optimalDetailFound = true;
-                            this.perfData.stabilityCount++;
-                            changeDirection = "stable";
-                            changeReason = "optimal";
-                            
-                            // Make tiny adjustments to maintain perfect range
-                            if (avgFps > 55) {
-                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.98);
-                            } else if (avgFps < 52) {
-                                baseTargetDetail = this.perfData.adaptiveDetail * 1.02;
+                    // Detect oscillation pattern
+                    let isOscillating = false;
+                    if (this.perfData.detailHistory.length >= 4) {
+                        // Get the last few changes
+                        const recentChanges = this.perfData.detailHistory.slice(-4);
+                        // Look for up-down-up or down-up-down patterns
+                        for (let i = 0; i < recentChanges.length - 2; i++) {
+                            if ((recentChanges[i].direction.includes('up') && 
+                                 recentChanges[i+1].direction.includes('down') && 
+                                 recentChanges[i+2].direction.includes('up')) ||
+                                (recentChanges[i].direction.includes('down') && 
+                                 recentChanges[i+1].direction.includes('up') && 
+                                 recentChanges[i+2].direction.includes('down'))) {
+                                isOscillating = true;
+                                break;
                             }
                         }
                     }
-                    // Not in preferred range but not at extremes either
-                    else {
-                        // If we're too high in triangle count but FPS is good
-                        if (this.perfData.triangleCount > this.perfData.preferredTriangleRange.max && avgFps > 55) {
-                            // We have room to stay here, but prefer to move toward preferred range
-                            baseTargetDetail = this.perfData.adaptiveDetail * 1.1;
-                            changeDirection = "down";
-                            changeReason = "preferred-range";
-                        } 
-                        // If we're too low in triangle count and FPS is marginal
-                        else if (this.perfData.triangleCount < this.perfData.preferredTriangleRange.min && avgFps > 50) {
-                            // Move toward preferred range
-                            baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.9);
-                            changeDirection = "up";
-                            changeReason = "preferred-range";
+                    
+                    // If we're oscillating and already in a good range, apply a "dead zone" to break the cycle
+                    if (isOscillating && inOptimalFpsRange) {
+                        this.perfData.deadZoneCounter++;
+                        
+                        // If we've been in dead zone long enough, we can exit
+                        if (this.perfData.deadZoneCounter >= this.perfData.deadZoneThreshold) {
+                            // Reset counter but proceed with normal adjustments
+                            this.perfData.deadZoneCounter = 0;
+                        } else {
+                            // Skip making any adjustments to break the oscillation cycle
+                            // Set target to current value to prevent change
+                            baseTargetDetail = this.perfData.adaptiveDetail;
+                            changeDirection = "stable";
+                            changeReason = "deadzone";
                         }
-                        // Otherwise make FPS-based decisions
-                        else if (avgFps < 45) {
-                            // FPS too low - reduce detail moderately
-                            baseTargetDetail = this.perfData.adaptiveDetail * 1.2;
-                            changeDirection = "down";
-                            changeReason = "fps-too-low";
-                        } else if (avgFps > 58) {
-                            // FPS excellent - increase detail moderately
-                            baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.85);
-                            changeDirection = "up";
-                            changeReason = "fps-excellent";
-                        } else if (avgFps >= 45 && avgFps < 50) {
-                            // FPS marginal - slight reduction
-                            baseTargetDetail = this.perfData.adaptiveDetail * 1.05;
-                            changeDirection = "down";
-                            changeReason = "fps-marginal";
-                        } else if (avgFps >= 50 && avgFps < 55) {
-                            // FPS good - slight increase
-                            baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.95);
-                            changeDirection = "up";
-                            changeReason = "fps-good";
+                    } else {
+                        // Not in dead zone, reset counter
+                        this.perfData.deadZoneCounter = 0;
+                    
+                        // If we're at extreme values, prioritize moving away from extremes
+                        if (atExtremeLow) {
+                            // We're too low, increase detail regardless of FPS (unless critically low FPS)
+                            if (avgFps > 35) {
+                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.85);
+                                changeDirection = "up";
+                                changeReason = "extreme-low";
+                            }
+                        } else if (atExtremeHigh) {
+                            // We're too high, decrease detail regardless of FPS (unless excellent FPS)
+                            if (avgFps < 58) {
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.25;
+                                changeDirection = "down";
+                                changeReason = "extreme-high";
+                            }
+                        }
+                        // If we're already in a good FPS range, make refinement decisions
+                        else if (inOptimalFpsRange) {
+                            if (currentAvgFps < 45) {
+                                // FPS is too low, reduce detail moderately
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.15;
+                                changeDirection = "down";
+                                changeReason = "fps-low";
+                            } else if (currentAvgFps > 58 && currentAvgFps < 65) {
+                                // FPS is good but we have headroom, increase detail slightly
+                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.95);
+                                changeDirection = "up";
+                                changeReason = "fps-high";
+                            } else if (currentAvgFps >= 50 && currentAvgFps <= 58) {
+                                // Perfect FPS range - mark as optimal
+                                this.perfData.optimalDetailFound = true;
+                                this.perfData.stabilityCount++;
+                                changeDirection = "stable";
+                                changeReason = "optimal";
+                                
+                                // When in optimal range, make much smaller adjustments or none at all
+                                if (currentAvgFps > 56) {
+                                    // Only make tiny adjustments when FPS is getting too high
+                                    baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.995);
+                                } else if (currentAvgFps < 51) {
+                                    // Only make tiny adjustments when FPS is getting too low
+                                    baseTargetDetail = this.perfData.adaptiveDetail * 1.005;
+                                } else {
+                                    // In the perfect sweet spot (51-56 FPS) - don't change at all
+                                    baseTargetDetail = this.perfData.adaptiveDetail;
+                                }
+                            }
+                        }
+                        // Not in preferred range but not at extremes either
+                        else {
+                            // If we're too high in triangle count but FPS is good
+                            if (this.perfData.triangleCount > this.perfData.preferredTriangleRange.max && avgFps > 55) {
+                                // We have room to stay here, but prefer to move toward preferred range
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.1;
+                                changeDirection = "down";
+                                changeReason = "preferred-range";
+                            } 
+                            // If we're too low in triangle count and FPS is marginal
+                            else if (this.perfData.triangleCount < this.perfData.preferredTriangleRange.min && avgFps > 50) {
+                                // Move toward preferred range
+                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.9);
+                                changeDirection = "up";
+                                changeReason = "preferred-range";
+                            }
+                            // Otherwise make FPS-based decisions
+                            else if (avgFps < 45) {
+                                // FPS too low - reduce detail moderately
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.2;
+                                changeDirection = "down";
+                                changeReason = "fps-too-low";
+                            } else if (avgFps > 58) {
+                                // FPS excellent - increase detail moderately
+                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.85);
+                                changeDirection = "up";
+                                changeReason = "fps-excellent";
+                            } else if (avgFps >= 45 && avgFps < 50) {
+                                // FPS marginal - slight reduction
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.05;
+                                changeDirection = "down";
+                                changeReason = "fps-marginal";
+                            } else if (avgFps >= 50 && avgFps < 55) {
+                                // FPS good - slight increase
+                                baseTargetDetail = Math.max(0.08, this.perfData.adaptiveDetail * 0.95);
+                                changeDirection = "up";
+                                changeReason = "fps-good";
+                            }
                         }
                     }
                     
-                    // CRITICAL: Limit the magnitude of change to prevent extreme jumps
-                    const maxAllowedChange = this.perfData.maxAllowedDetailChange;
+                    // CRITICAL: Dynamically calculate allowed change based on performance metrics
+                    // Calculate how far we are from optimal FPS
+                    const adaptiveAvgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                                         this.perfData.fpsHistory.length;
+                    
+                    // Calculate distance from target FPS as a ratio (0-1)
+                    const fpsDistance = Math.abs(adaptiveAvgFps - this.perfData.targetFps) / this.perfData.targetFps;
+                    
+                    // Scale max allowed change based on FPS performance and convergence state
+                    let maxAllowedChange;
+                    
+                    if (this.perfData.optimalDetailFound) {
+                        // Very small changes allowed once optimal is found
+                        maxAllowedChange = this.perfData.minAllowedDetailChange;
+                    } else {
+                        // Calculate how stable our FPS has been (stability = less change needed)
+                        let stabilityFactor = 0;
+                        if (this.perfData.fpsHistory.length >= 3) {
+                            const recent = this.perfData.fpsHistory.slice(-3);
+                            const fpsVariance = Math.max(...recent) - Math.min(...recent);
+                            // Lower variance = higher stability (0-1)
+                            stabilityFactor = Math.min(1, Math.max(0, 1 - (fpsVariance / 15)));
+                        }
+                        
+                        // Calculate a base scaling factor from FPS distance (further = more change)
+                        // Use a non-linear curve to make it more aggressive for larger distances
+                        const distanceFactor = Math.min(1, Math.pow(fpsDistance * 2, 1.5));
+                        
+                        // Combine factors, weighting stability more as we get more samples
+                        const finalFactor = this.perfData.fpsHistory.length >= 3 
+                            ? (distanceFactor * 0.7) + (0.3 * (1 - stabilityFactor))  
+                            : distanceFactor;
+                            
+                        // Scale between min and max allowed change
+                        maxAllowedChange = this.perfData.minAllowedDetailChange + 
+                            (this.perfData.initialMaxAllowedDetailChange - this.perfData.minAllowedDetailChange) * finalFactor;
+                    }
+                    
+                    // Update the current max allowed change value for reference
+                    this.perfData.maxAllowedDetailChange = maxAllowedChange;
+                    
+                    // Now apply the dynamic limit
                     const currentDetail = this.perfData.adaptiveDetail;
                     let limitedTarget = baseTargetDetail;
                     
@@ -208,7 +298,7 @@ class PerformanceMonitor {
                     }
                     
                     // Only record a direction change if we actually changed significantly
-                    if (Math.abs(this.perfData.targetDetail - this.perfData.adaptiveDetail) > 0.005) {
+                    if (Math.abs(this.perfData.targetDetail - this.perfData.adaptiveDetail) > this.perfData.stableThreshold) {
                         this.perfData.lastDirection = changeDirection;
                         this.perfData.lastDetailChange = now;
                         this.perfData.detailHistory.push({
@@ -242,17 +332,27 @@ class PerformanceMonitor {
             // Adjust adaptation rate based on state
             let adaptationRate = 0.4; // Default medium adaptation rate
             
-            // Check if we're near the preferred triangle count range
-            const nearPreferredRange = 
-                this.perfData.triangleCount >= this.perfData.preferredTriangleRange.min * 0.7 && 
-                this.perfData.triangleCount <= this.perfData.preferredTriangleRange.max * 1.3;
+            // Calculate how close we are to target FPS
+            const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                          this.perfData.fpsHistory.length;
+            const fpsDistance = Math.abs(avgFps - this.perfData.targetFps);
+            const nearTargetFps = fpsDistance <= 8; // Within 8 FPS of target
                 
             // Prioritize stability and convergence over speed
             if (this.perfData.optimalDetailFound) {
-                // Very slow, gradual changes once we've found optimal settings
-                adaptationRate = 0.2;
-            } else if (nearPreferredRange) {
-                // When near the preferred range, move carefully to avoid overshooting
+                // Much slower adaptation when optimal settings are found
+                adaptationRate = 0.1;
+                
+                // Check if we're in a very stable state (FPS in perfect range)
+                const stableAvgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                                    this.perfData.fpsHistory.length;
+                              
+                if (stableAvgFps >= 51 && stableAvgFps <= 56) {
+                    // In the perfect sweet spot - use extremely slow adaptation to prevent oscillation
+                    adaptationRate = 0.05;
+                }
+            } else if (nearTargetFps) {
+                // When near the target FPS, move carefully to avoid overshooting
                 adaptationRate = 0.3;
             } else if (Math.abs(detailDiff) > 0.1) {
                 // For very large changes, move more cautiously to avoid extreme swings
@@ -271,8 +371,8 @@ class PerformanceMonitor {
                 }
                 
                 if (hasOscillation) {
-                    // Detected oscillation - use very slow adaptation
-                    adaptationRate = 0.2;
+                    // Detected oscillation - use much slower adaptation
+                    adaptationRate = 0.15;
                 }
             }
             
@@ -291,10 +391,10 @@ class PerformanceMonitor {
             // Add stability detection - if we're close to target, mark as stable
             if (Math.abs(detailDiff) < 0.02 && !this.perfData.optimalDetailFound) {
                 // We've reached a stable point - check if it's good
-                const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
-                              this.perfData.fpsHistory.length;
+                const stablePointFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                                      this.perfData.fpsHistory.length;
                 
-                if (avgFps >= 50 && avgFps <= 60) {
+                if (stablePointFps >= 50 && stablePointFps <= 60) {
                     this.perfData.optimalDetailFound = true;
                     console.log(`Optimal detail level found: ${this.perfData.adaptiveDetail.toFixed(4)}`);
                 }
@@ -303,8 +403,8 @@ class PerformanceMonitor {
             console.log(`Detail adapted: ${this.perfData.adaptiveDetail.toFixed(4)}, target: ${this.perfData.targetDetail.toFixed(4)}, triangles: ${this.perfData.triangleCount}, optimal: ${this.perfData.optimalDetailFound}`);
             
             // Track average FPS
-            const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
-                          this.perfData.fpsHistory.length;
+            const averageFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                              this.perfData.fpsHistory.length;
             
             // Calculate average triangle count from history
             const avgTriangleCount = this.perfData.triangleHistory.length > 0 
@@ -314,13 +414,13 @@ class PerformanceMonitor {
             // Triangle target adjustment with preference for mid-range values
             if (this.perfData.optimalDetailFound) {
                 // Once optimal is found, make only very small adjustments
-                if (avgFps > 57 && avgTriangleCount < this.perfData.preferredTriangleRange.max) {
+                if (averageFps > 57 && avgTriangleCount < this.perfData.preferredTriangleRange.max) {
                     // Small increases when performance is good
                     this.perfData.triangleTarget = Math.min(
                         this.perfData.maxTriangleTarget, 
                         this.perfData.triangleTarget + 250
                     );
-                } else if (avgFps < 48) {
+                } else if (averageFps < 48) {
                     // Small decreases when approaching performance limits
                     this.perfData.triangleTarget = Math.max(
                         this.perfData.minTriangleTarget,
@@ -332,7 +432,7 @@ class PerformanceMonitor {
                 // While converging, prioritize moving toward preferred range
                 if (avgTriangleCount < this.perfData.preferredTriangleRange.min) {
                     // Below preferred range - increase carefully if FPS allows
-                    if (avgFps > 50) {
+                    if (averageFps > 50) {
                         // Increase toward preferred range, faster when further away
                         const distance = this.perfData.preferredTriangleRange.min - avgTriangleCount;
                         const increaseAmount = Math.min(750, Math.max(250, distance / 15));
@@ -353,13 +453,13 @@ class PerformanceMonitor {
                 } else {
                     // We're within the preferred range already!
                     // Make small adjustments based on FPS
-                    if (avgFps > 55 && avgTriangleCount < this.perfData.preferredTriangleRange.max * 0.9) {
+                    if (averageFps > 55 && avgTriangleCount < this.perfData.preferredTriangleRange.max * 0.9) {
                         // Room to increase slightly within range
                         this.perfData.triangleTarget = Math.min(
                             this.perfData.preferredTriangleRange.max,
                             this.perfData.triangleTarget + 350
                         );
-                    } else if (avgFps < 48 && avgTriangleCount > this.perfData.preferredTriangleRange.min * 1.1) {
+                    } else if (averageFps < 48 && avgTriangleCount > this.perfData.preferredTriangleRange.min * 1.1) {
                         // Need to decrease slightly within range
                         this.perfData.triangleTarget = Math.max(
                             this.perfData.preferredTriangleRange.min,
@@ -400,7 +500,7 @@ class PerformanceMonitor {
         // Set up text rendering
         ctx.save();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(5, 5, 280, 175); // Taller box for more info
+        ctx.fillRect(5, 5, 280, 195); // Taller box for more info
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px monospace';
         ctx.textBaseline = 'top';
@@ -413,22 +513,26 @@ class PerformanceMonitor {
             ? Math.round(this.perfData.triangleHistory.reduce((a, b) => a + b, 0) / this.perfData.triangleHistory.length)
             : this.perfData.triangleCount;
             
-        // Color-code triangle count based on preferred range
-        if (this.perfData.triangleCount >= this.perfData.preferredTriangleRange.min && 
-            this.perfData.triangleCount <= this.perfData.preferredTriangleRange.max) {
-            ctx.fillStyle = '#00ff00'; // Green for in-range
-        } else if (this.perfData.triangleCount < this.perfData.minTriangleTarget ||
-                  this.perfData.triangleCount > this.perfData.maxTriangleTarget) {
-            ctx.fillStyle = '#ff0000'; // Red for extreme values
+        // Color-code triangle count based on FPS distance from target
+        const uiFps = this.perfData.fpsHistory.length > 0 
+            ? this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / this.perfData.fpsHistory.length
+            : this.perfData.fps;
+        const fpsDiff = Math.abs(uiFps - this.perfData.targetFps);
+        
+        if (fpsDiff <= 3) {
+            ctx.fillStyle = '#00ff00'; // Green for close to target
+        } else if (fpsDiff > 10) {
+            ctx.fillStyle = '#ff0000'; // Red for far from target
         } else {
-            ctx.fillStyle = '#ffcc00'; // Yellow for near-range
+            ctx.fillStyle = '#ffcc00'; // Yellow for moderate distance
         }
         
         ctx.fillText(`Triangles: ${this.perfData.triangleCount} / Target: ${this.perfData.triangleTarget}`, 10, 25);
         ctx.fillStyle = '#ffffff'; // Reset color
         
-        // Show triangle range info
-        ctx.fillText(`Preferred Range: ${this.perfData.preferredTriangleRange.min}-${this.perfData.preferredTriangleRange.max}`, 10, 40);
+        // Show target FPS info
+        const fpsDistance = Math.abs(Math.round(this.perfData.fps) - this.perfData.targetFps);
+        ctx.fillText(`Target FPS: ${this.perfData.targetFps} (± ${fpsDistance})`, 10, 40);
         
         // Add color indicators for target direction
         if (this.perfData.optimalDetailFound) {
@@ -448,13 +552,16 @@ class PerformanceMonitor {
         ctx.fillText(`Detail Level: ${this.perfData.adaptiveDetail.toFixed(3)} → ${this.perfData.targetDetail.toFixed(3)}`, 10, 55);
         ctx.fillStyle = '#ffffff'; // Reset color
         
-        ctx.fillText(`Detail Areas: ${this.perfData.detailAreas}`, 10, 70);
-        ctx.fillText(`Render Time: ${this.perfData.renderTime.toFixed(1)}ms`, 10, 85);
+        // Show allowed change limit - useful for debugging
+        ctx.fillText(`Max Change: ${this.perfData.maxAllowedDetailChange.toFixed(3)}`, 10, 70);
+        
+        ctx.fillText(`Detail Areas: ${this.perfData.detailAreas}`, 10, 85);
+        ctx.fillText(`Render Time: ${this.perfData.renderTime.toFixed(1)}ms`, 10, 100);
         
         // Show convergence status
         if (this.perfData.optimalDetailFound) {
             ctx.fillStyle = '#00ff00'; // Green for optimal
-            ctx.fillText(`Status: OPTIMAL (Stability: ${this.perfData.stabilityCount})`, 10, 100);
+            ctx.fillText(`Status: OPTIMAL (Stability: ${this.perfData.stabilityCount})`, 10, 115);
             ctx.fillStyle = '#ffffff'; // Reset color
         } else {
             // Show whether we're converging toward the preferred range
@@ -466,7 +573,7 @@ class PerformanceMonitor {
             );
             
             ctx.fillStyle = movingTowardPreferred ? '#00ff00' : '#ffffff';
-            ctx.fillText(`Status: ${movingTowardPreferred ? 'CONVERGING' : 'ADAPTING'} (${this.perfData.upCount}/${this.perfData.downCount})`, 10, 100);
+            ctx.fillText(`Status: ${movingTowardPreferred ? 'CONVERGING' : 'ADAPTING'} (${this.perfData.upCount}/${this.perfData.downCount})`, 10, 115);
             ctx.fillStyle = '#ffffff'; // Reset color
         }
         
@@ -474,7 +581,7 @@ class PerformanceMonitor {
         if (this.perfData.detailHistory && this.perfData.detailHistory.length > 0) {
             const lastChange = this.perfData.detailHistory[this.perfData.detailHistory.length - 1];
             const secAgo = ((performance.now() - lastChange.time) / 1000).toFixed(1);
-            ctx.fillText(`Last Change: ${lastChange.direction} (${secAgo}s ago)`, 10, 115);
+            ctx.fillText(`Last Change: ${lastChange.direction} (${secAgo}s ago)`, 10, 130);
             
             // Show oscillation detection
             if (this.perfData.detailHistory.length >= 4) {
@@ -495,7 +602,7 @@ class PerformanceMonitor {
                 }
                 
                 ctx.fillStyle = hasOscillation ? '#ff0000' : '#00ff00';
-                ctx.fillText(`Pattern: ${hasOscillation ? 'Oscillating' : 'Stable'}`, 10, 130);
+                ctx.fillText(`Pattern: ${hasOscillation ? 'Oscillating' : 'Stable'}`, 10, 145);
                 ctx.fillStyle = '#ffffff'; // Reset color
                 
                 // Show range analysis
@@ -503,7 +610,14 @@ class PerformanceMonitor {
                     ? Math.round(this.perfData.triangleHistory.reduce((a, b) => a + b, 0) / this.perfData.triangleHistory.length)
                     : this.perfData.triangleCount;
                 
-                ctx.fillText(`Avg Triangles: ${avgTriCount}`, 10, 145);
+                ctx.fillText(`Avg Triangles: ${avgTriCount}`, 10, 160);
+                
+                // Add deadzone information if relevant
+                if (this.perfData.deadZoneCounter > 0) {
+                    ctx.fillStyle = '#ffcc00'; // Gold for deadzone
+                    ctx.fillText(`Deadzone: ${this.perfData.deadZoneCounter}/${this.perfData.deadZoneThreshold}`, 10, 175);
+                    ctx.fillStyle = '#ffffff'; // Reset color
+                }
             }
         }
         
