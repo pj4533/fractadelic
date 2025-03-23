@@ -31,11 +31,11 @@ class PerformanceMonitor {
             maxTriangleTarget: 16000,    // Lower maximum acceptable triangle count
             preferredTriangleRange: {min: 8000, max: 14000}, // Lower ideal range to stabilize within
             previousDetailLevels: [0.25, 0.25, 0.25], // Track previous levels for exponential smoothing
-            smoothingFactor: 0.6,  // Increased to make adaptations more responsive (higher value = less smoothing)
+            smoothingFactor: 0.4,  // Reduced to increase smoothing and prevent oscillation
             stableThreshold: 0.005, // Threshold for considering a change significant
             oscillationBuffer: [], // Track recent direction changes to detect oscillation patterns
             deadZoneCounter: 0,    // Count frames spent in the dead zone (no changes)
-            deadZoneThreshold: 10  // Number of frames to stay in dead zone before allowing changes
+            deadZoneThreshold: 15  // Increased frames to stay in dead zone to better break oscillation
         };
     }
     
@@ -95,27 +95,44 @@ class PerformanceMonitor {
                     let changeDirection = "none";
                     let changeReason = "";
                     
-                    // Detect oscillation pattern
+                    // Enhanced oscillation detection logic
                     let isOscillating = false;
-                    if (this.perfData.detailHistory.length >= 4) {
+                    
+                    // Check if current detail level is at the extremes of our scale
+                    const isAtExtreme = this.perfData.adaptiveDetail <= 0.15 || this.perfData.adaptiveDetail >= 0.90;
+                    
+                    // Always consider oscillating if we're at extreme values to prevent edge bouncing
+                    if (isAtExtreme) {
+                        isOscillating = true;
+                    }
+                    // Normal oscillation pattern detection
+                    else if (this.perfData.detailHistory.length >= 3) {
                         // Get the last few changes
-                        const recentChanges = this.perfData.detailHistory.slice(-4);
-                        // Look for up-down-up or down-up-down patterns
-                        for (let i = 0; i < recentChanges.length - 2; i++) {
+                        const recentChanges = this.perfData.detailHistory.slice(-3);
+                        
+                        // Look for any alternating direction changes, more sensitive detection
+                        for (let i = 0; i < recentChanges.length - 1; i++) {
                             if ((recentChanges[i].direction.includes('up') && 
-                                 recentChanges[i+1].direction.includes('down') && 
-                                 recentChanges[i+2].direction.includes('up')) ||
+                                 recentChanges[i+1].direction.includes('down')) ||
                                 (recentChanges[i].direction.includes('down') && 
-                                 recentChanges[i+1].direction.includes('up') && 
-                                 recentChanges[i+2].direction.includes('down'))) {
+                                 recentChanges[i+1].direction.includes('up'))) {
                                 isOscillating = true;
                                 break;
                             }
                         }
+                        
+                        // Also detect large jumps in detail level as oscillation
+                        if (!isOscillating && recentChanges.length >= 2) {
+                            const lastChange = Math.abs(recentChanges[recentChanges.length-1].detail - 
+                                                      recentChanges[recentChanges.length-2].detail);
+                            if (lastChange > 0.10) {
+                                isOscillating = true;
+                            }
+                        }
                     }
                     
-                    // If we're oscillating and already in a good range, apply a "dead zone" to break the cycle
-                    if (isOscillating && inOptimalFpsRange) {
+                    // Apply dead zone more aggressively - even when not in optimal FPS range, if oscillating
+                    if (isOscillating) {
                         this.perfData.deadZoneCounter++;
                         
                         // If we've been in dead zone long enough, we can exit
@@ -142,9 +159,9 @@ class PerformanceMonitor {
                                 changeReason = "extreme-low";
                             }
                         } else if (atExtremeHigh) {
-                            // We're too high, decrease detail much more aggressively
+                            // We're too high, decrease detail moderately (less aggressive to prevent overshoot)
                             if (avgFps < 58) {
-                                baseTargetDetail = this.perfData.adaptiveDetail * 1.6;
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.3;
                                 changeDirection = "down";
                                 changeReason = "extreme-high";
                             }
@@ -152,8 +169,8 @@ class PerformanceMonitor {
                         // If we're already in a good FPS range, make refinement decisions
                         else if (inOptimalFpsRange) {
                             if (currentAvgFps < 30) {
-                                // FPS is too low, reduce detail much more aggressively
-                                baseTargetDetail = this.perfData.adaptiveDetail * 1.35;
+                                // FPS is too low, reduce detail moderately (less aggressive to prevent overshoot)
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.25;
                                 changeDirection = "down";
                                 changeReason = "fps-low";
                             } else if (currentAvgFps > 38 && currentAvgFps < 45) {
@@ -205,8 +222,8 @@ class PerformanceMonitor {
                             }
                             // Otherwise make FPS-based decisions
                             else if (avgFps < 45) {
-                                // FPS too low - reduce detail much more aggressively
-                                baseTargetDetail = this.perfData.adaptiveDetail * 1.4;
+                                // FPS too low - reduce detail moderately (less aggressive to prevent overshoot)
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.2;
                                 changeDirection = "down";
                                 changeReason = "fps-too-low";
                             } else if (avgFps > 58) {
@@ -215,8 +232,8 @@ class PerformanceMonitor {
                                 changeDirection = "up";
                                 changeReason = "fps-excellent";
                             } else if (avgFps >= 45 && avgFps < 50) {
-                                // FPS marginal - more significant reduction
-                                baseTargetDetail = this.perfData.adaptiveDetail * 1.25;
+                                // FPS marginal - moderate reduction (less aggressive to prevent overshoot)
+                                baseTargetDetail = this.perfData.adaptiveDetail * 1.15;
                                 changeDirection = "down";
                                 changeReason = "fps-marginal";
                             } else if (avgFps >= 50 && avgFps < 55) {
@@ -393,12 +410,17 @@ class PerformanceMonitor {
             // Use a weighted moving average approach for smoother transitions
             const newDetail = this.perfData.adaptiveDetail + (detailDiff * adaptationRate);
             
-            // Extra smoothing for significant changes (over 15% change in triangles)
+            // Apply extra smoothing to prevent large jumps
+            // Use heavier weight on existing value to dampen oscillations
             if (Math.abs(detailDiff) > 0.1) {
-                // For big jumps, use weighted average with previous value
-                this.perfData.adaptiveDetail = (newDetail * 0.6) + (this.perfData.adaptiveDetail * 0.4);
+                // For big jumps, use heavily weighted average with previous value
+                this.perfData.adaptiveDetail = (newDetail * 0.3) + (this.perfData.adaptiveDetail * 0.7);
+            } else if (Math.abs(detailDiff) > 0.02) {
+                // For medium jumps, apply moderate smoothing
+                this.perfData.adaptiveDetail = (newDetail * 0.5) + (this.perfData.adaptiveDetail * 0.5);
             } else {
-                this.perfData.adaptiveDetail = newDetail;
+                // Even for small changes, apply some smoothing
+                this.perfData.adaptiveDetail = (newDetail * 0.7) + (this.perfData.adaptiveDetail * 0.3);
             }
             
             // Add strong safety bounds to prevent detail level issues
