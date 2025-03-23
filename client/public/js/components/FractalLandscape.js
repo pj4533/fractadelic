@@ -68,27 +68,22 @@ class FractalLandscape {
         const deltaTime = timestamp - this.lastFrameTime;
         this.lastFrameTime = timestamp;
         
-        // Only update animation state locally if not using server sync
-        if (!this.useServerSync) {
-            // Update global time for color shifts
-            this.globalTime += deltaTime * 0.001;
-            this.colorManager.updateColorShift(deltaTime);
-            
-            // Update wave effect
-            this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
-            
-            // Auto-evolve the landscape very subtly (only in local mode)
-            if (timestamp - this.lastAutoEvolutionTime > 100) {
-                this.terrainGenerator.microEvolve(0.001);
-                this.lastAutoEvolutionTime = timestamp;
-            }
+        // Always update animation locally for smoother rendering
+        // Update global time for color shifts
+        this.globalTime += deltaTime * 0.001;
+        this.colorManager.updateColorShift(deltaTime);
+        
+        // Update wave effect
+        this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+        
+        // Auto-evolve the landscape very subtly
+        if (timestamp - this.lastAutoEvolutionTime > 100) {
+            this.terrainGenerator.microEvolve(0.001);
+            this.lastAutoEvolutionTime = timestamp;
         }
-        // In server sync mode, we don't do any time-based updates locally
-        // All updates come from the server's animationState events
         
         // Update particles
         this.particleSystem.updateParticles(deltaTime, this.width, this.height);
-        
         
         // Render
         this.render();
@@ -152,25 +147,32 @@ class FractalLandscape {
     updateAnimationState(animState) {
         if (!this.useServerSync) return;
         
-        // Update animation state from server
-        this.globalTime = animState.globalTime;
-        this.waveOffset = animState.waveOffset * this.options.waveIntensity;
-        
-        // Update color shift in the color manager
-        if (animState.colorShift !== undefined) {
-            this.colorManager.colorShift = animState.colorShift;
-        }
-        
-        // Perform microEvolve if signaled by server
-        if (animState.microEvolve) {
-            this.terrainGenerator.microEvolve(0.001);
-        }
+        // Only sync base parameters, don't override local animation state
+        // This preserves smooth local animation while keeping clients roughly in sync
         
         // Store the shared random seed for deterministic random operations
         if (animState.sharedSeed !== undefined) {
             this.sharedSeed = animState.sharedSeed;
             // Set seed for particle system
             this.particleSystem.setSharedSeed(this.sharedSeed);
+        }
+        
+        // Gently nudge local animation toward server values (partial sync)
+        // This creates a blended approach that's smooth but still synchronized
+        if (animState.isSyncCheckpoint) {
+            // On periodic full sync checkpoints, align more closely with server values
+            this.globalTime = animState.globalTime;
+            this.waveOffset = animState.waveOffset * this.options.waveIntensity;
+            
+            // Update color shift in the color manager
+            if (animState.colorShift !== undefined) {
+                this.colorManager.colorShift = animState.colorShift;
+            }
+        }
+        
+        // Perform microEvolve if signaled by server
+        if (animState.microEvolve) {
+            this.terrainGenerator.microEvolve(0.001);
         }
     }
     

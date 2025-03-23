@@ -31,26 +31,46 @@ const state = {
     colorShift: 0
 };
 
-// Update animation state at regular intervals
+// Continuous internal animation state updates (faster than broadcast)
 setInterval(() => {
     // Update time-based animation parameters
     state.globalTime += 0.016; // 16ms (60fps-like timing)
     state.waveOffset += 0.016 * 0.5; // Base wave movement 
     state.colorShift = (state.colorShift + 0.016 * 0.0002) % 1;
-    
+}, 16); // Update at approximate 60fps internally
+
+// Frequent lightweight sync with minimal data
+setInterval(() => {
     // Create shared random seed for determinism
     const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
     
-    // Broadcast animation state to all clients more frequently
+    // Broadcast minimal animation state at moderate frequency
+    io.emit('animationState', {
+        sharedSeed: sharedSeed,
+        // Add microEvolve flag occasionally
+        microEvolve: (Math.floor(state.globalTime * 10) % 1 === 0)
+    });
+}, 500); // Update at 2fps - enough for shared random values but not too heavy
+
+// Full synchronization checkpoint at longer intervals
+let syncCounter = 0;
+setInterval(() => {
+    syncCounter++;
+    // Create shared random seed for determinism
+    const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
+    
+    // Broadcast full animation state to all clients less frequently
     io.emit('animationState', {
         globalTime: state.globalTime,
         waveOffset: state.waveOffset,
         colorShift: state.colorShift,
         sharedSeed: sharedSeed,
-        // Add microEvolve flag every 100ms
-        microEvolve: (Math.floor(state.globalTime * 10) % 1 === 0)
+        // Flag this as a full sync checkpoint
+        isSyncCheckpoint: true,
+        // Add microEvolve flag occasionally
+        microEvolve: (syncCounter % 5 === 0)
     });
-}, 16); // Update at approximate 60fps for smooth animation
+}, 30000); // Full sync every 30 seconds
 
 // Connected users
 let connectedUsers = 0;
@@ -90,8 +110,20 @@ io.on('connection', (socket) => {
     // Send current state to new client
     socket.on('getState', () => {
         console.log(`Received 'getState' request from client [id: ${socket.id}]`);
+        // Send full state
         socket.emit('state', state);
         console.log(`Sent 'state' to client [id: ${socket.id}]: ${JSON.stringify(state)}`);
+        
+        // Also send an immediate sync checkpoint to align animations
+        const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
+        socket.emit('animationState', {
+            globalTime: state.globalTime,
+            waveOffset: state.waveOffset,
+            colorShift: state.colorShift,
+            sharedSeed: sharedSeed,
+            isSyncCheckpoint: true
+        });
+        console.log(`Sent initial sync checkpoint to client [id: ${socket.id}]`);
     });
     
     // Handle option updates

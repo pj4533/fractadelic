@@ -209,10 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add seed point locally
         fractal.addSeedPoint(x, y, value);
         
-        // Add ripple effect
-        setTimeout(() => {
-            fractal.addRipple(x, y, value * 0.8);
-        }, 100);
         
         // Seed count tracking removed
         
@@ -221,48 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('addSeed', { x, y, value });
     }
     
-    // Add a ripple effect
-    function addRipple(intensity = 0.6) {
-        const x = Math.random();
-        const y = Math.random();
-        const value = 0.4 + Math.random() * intensity;
-        
-        fractal.addRipple(x, y, value);
-    }
     
-    // Add multiple ripples in a pattern
-    function addRipplePattern(pattern = 'circle', count = 5) {
-        const centerX = Math.random();
-        const centerY = Math.random();
-        
-        for (let i = 0; i < count; i++) {
-            let x, y;
-            
-            if (pattern === 'circle') {
-                const angle = (i / count) * Math.PI * 2;
-                const distance = 0.1 + Math.random() * 0.1;
-                x = centerX + Math.cos(angle) * distance;
-                y = centerY + Math.sin(angle) * distance;
-            } else if (pattern === 'line') {
-                const angle = Math.random() * Math.PI * 2;
-                const distance = (i / count) * 0.3;
-                x = centerX + Math.cos(angle) * distance;
-                y = centerY + Math.sin(angle) * distance;
-            } else {
-                x = Math.random();
-                y = Math.random();
-            }
-            
-            // Keep within bounds
-            x = Math.max(0, Math.min(1, x));
-            y = Math.max(0, Math.min(1, y));
-            
-            const value = 0.4 + Math.random() * 0.6;
-            setTimeout(() => {
-                fractal.addRipple(x, y, value);
-            }, i * 80);
-        }
-    }
     
     // Update wave intensity
     function updateWaveIntensity(delta) {
@@ -336,16 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update parameter display
         updateParameterDisplay('palette', paletteName);
-        
-        // Add some ripples for visual effect on palette change
-        for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-                const x = Math.random();
-                const y = Math.random();
-                const value = 0.5 + Math.random() * 0.5;
-                fractal.addRipple(x, y, value);
-            }, i * 100);
-        }
         
         // Send to server
         console.log(`Sending palette update to server: ${paletteName}`);
@@ -439,13 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call initialization
     initializeDisplays();
     
-    // Add occasional automatic ripple effects to enhance visual interest
-    setInterval(() => {
-        // Randomly add ripples
-        if (Math.random() > 0.7) {
-            addRipple();
-        }
-    }, 4000);
     
     // Add keyboard controls - simplified to only essential parameters
     document.addEventListener('keydown', (e) => {
@@ -493,11 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
                 break;
                 
-            // Add subtle ripple effects automatically on occasion to enhance visual interest
-            case ' ': // Space - just add a ripple for visual interest
-                addRipple();
-                showKeyFeedback('Space', 'Add ripple effect');
-                break;
+            // Add keyboard shortcut for other functions as needed
         }
     });
     
