@@ -431,6 +431,8 @@ class FractalLandscape {
             
             // Set lower bound dynamically based on history
             // Allow incredibly high detail if system proves it can handle it
+            const avgFps = this.perfData.fpsHistory.reduce((a, b) => a + b, 0) / 
+                           this.perfData.fpsHistory.length;
             if (this.perfData.upCount > 3 && avgFps > 55) {
                 // System has shown it can handle high detail - push further
                 this.perfData.triangleTarget = Math.min(20000, this.perfData.triangleTarget + 1000);
@@ -668,11 +670,11 @@ class FractalLandscape {
         
         // Add color indicators for target direction
         if (this.perfData.targetDetail < this.perfData.adaptiveDetail) {
-            // Moving toward higher detail
-            this.ctx.fillStyle = '#00ff00'; // Green - increasing detail
+            // Moving toward higher detail (lower value = higher detail)
+            this.ctx.fillStyle = '#00ff00'; // Green for higher detail
         } else if (this.perfData.targetDetail > this.perfData.adaptiveDetail) {
-            // Moving toward lower detail
-            this.ctx.fillStyle = '#ff0000'; // Red - reducing detail
+            // Moving toward lower detail (higher value = lower detail)
+            this.ctx.fillStyle = '#ff0000'; // Red for lower detail
         } else {
             // Stable
             this.ctx.fillStyle = '#ffffff'; // White - stable
