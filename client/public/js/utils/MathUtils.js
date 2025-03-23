@@ -22,14 +22,51 @@ export const safeValue = (value, defaultValue) => {
 };
 
 /**
- * Adds a random displacement to a value within a range
+ * Adds a random displacement to a value within a range with safety checks
  * @param {number} value - The base value
  * @param {number} roughness - The roughness factor
  * @returns {number} The value with added displacement
  */
 export const randomShift = (value, roughness) => {
-    const displacement = (Math.random() * 2 - 1) * roughness;
-    return value + displacement;
+    // Validate inputs
+    if (isNaN(value) || !isFinite(value)) {
+        console.warn('MathUtils.randomShift: Invalid base value:', value);
+        value = 0; // Use safe default
+    }
+    
+    if (isNaN(roughness) || !isFinite(roughness)) {
+        console.warn('MathUtils.randomShift: Invalid roughness:', roughness);
+        roughness = 0.01; // Use safe default
+    }
+    
+    // Cap roughness to reasonable values to prevent extreme displacements
+    const safeRoughness = Math.min(Math.abs(roughness), 1.0);
+    
+    // Generate random value with safety check
+    let random;
+    try {
+        random = Math.random();
+        // Ensure the random value is valid
+        if (isNaN(random) || !isFinite(random)) {
+            console.warn('MathUtils.randomShift: Invalid Math.random() result');
+            random = 0.5; // Use safe default
+        }
+    } catch (err) {
+        console.error('MathUtils.randomShift: Error generating random value:', err);
+        random = 0.5; // Use safe default
+    }
+    
+    // Calculate displacement with bounds checking
+    const displacement = (random * 2 - 1) * safeRoughness;
+    
+    // Return value with displacement, ensuring result is finite
+    const result = value + displacement;
+    if (isNaN(result) || !isFinite(result)) {
+        console.warn('MathUtils.randomShift: Calculated invalid result:', result);
+        return value; // Return original value as fallback
+    }
+    
+    return result;
 };
 
 /**

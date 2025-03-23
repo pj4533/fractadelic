@@ -35,7 +35,16 @@ class QuadTreeSubdivider {
         }
         
         // Sort triangles by height for better visual layering (back-to-front)
-        this.triangleBatch.sort((a, b) => a.height - b.height);
+        // Add a small epsilon to prevent z-fighting from identical heights
+        this.triangleBatch.sort((a, b) => {
+            const heightDiff = a.height - b.height;
+            // If heights are nearly identical, maintain stable sorting
+            if (Math.abs(heightDiff) < 0.0001) {
+                // Use position for stable sorting when heights are equal
+                return (a.y1 + a.y2 + a.y3) - (b.y1 + b.y2 + b.y3);
+            }
+            return heightDiff;
+        });
         
         return { 
             triangleBatch: this.triangleBatch,
@@ -95,9 +104,8 @@ class QuadTreeSubdivider {
             const newSize = halfSize;
             // Make child subdivisions maintain parent's detail factor for consistent behavior
             // This ensures the detail level properly propagates through the entire subdivision tree
-            // For high detail (low safeDetailFactor), we preserve the detail level
-            // For low detail (high safeDetailFactor), we might even increase it slightly to create bigger triangles
-            const newDetail = Math.max(limitedDetailFactor, limitedDetailFactor * 1.1);
+            // Use the same detail factor for child nodes to prevent accumulated changes
+            const newDetail = limitedDetailFactor;
             
             // Recursively subdivide into 4 quads
             this.createSubdividedGrid(startX, startY, newSize, newDetail, 
@@ -131,10 +139,26 @@ class QuadTreeSubdivider {
             { x: startX, y: startY + size }
         ];
         
+        // Ensure points have valid coordinates
+        for (let i = 0; i < points.length; i++) {
+            if (isNaN(points[i].x) || isNaN(points[i].y) || 
+                !isFinite(points[i].x) || !isFinite(points[i].y)) {
+                console.warn('Invalid point coordinates detected:', points[i]);
+                return; // Skip creating triangles with invalid points
+            }
+        }
+        
         // Get corner data
         const corners = points.map(p => {
             // Get terrain value for this position
             const value = this.terrainGenerator.getValue(p.x, p.y);
+            
+            // Skip invalid values
+            if (isNaN(value) || !isFinite(value)) {
+                console.warn('Invalid height value detected at', p);
+                return { xPos: p.x * pixelWidth, yPos: p.y * pixelHeight, value: 0, color: '#000000' };
+            }
+            
             const color = this.colorManager.getHeightColor(value);
             
             // Direct mapping of coordinates to pixels without wave effect
@@ -144,24 +168,39 @@ class QuadTreeSubdivider {
             return { xPos, yPos, value, color };
         });
         
-        // Create triangles for this quad
+        // Ensure all corners have valid positions
+        for (let i = 0; i < corners.length; i++) {
+            if (isNaN(corners[i].xPos) || isNaN(corners[i].yPos) || 
+                !isFinite(corners[i].xPos) || !isFinite(corners[i].yPos)) {
+                console.warn('Invalid corner position detected:', corners[i]);
+                return; // Skip creating triangles with invalid corners
+            }
+        }
+        
+        // Ensure valid triangle area before adding (avoid degenerate triangles)
         // First triangle (top-left, top-right, bottom-left)
-        this.triangleBatch.push({
-            x1: corners[0].xPos, y1: corners[0].yPos, color1: corners[0].color,
-            x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
-            x3: corners[3].xPos, y3: corners[3].yPos, color3: corners[3].color,
-            height: (corners[0].value + corners[1].value + corners[3].value) / 3
-        });
+        const height1 = (corners[0].value + corners[1].value + corners[3].value) / 3;
+        if (isFinite(height1)) {
+            this.triangleBatch.push({
+                x1: corners[0].xPos, y1: corners[0].yPos, color1: corners[0].color,
+                x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
+                x3: corners[3].xPos, y3: corners[3].yPos, color3: corners[3].color,
+                height: height1
+            });
+            this.triangleCount++;
+        }
         
         // Second triangle (bottom-left, top-right, bottom-right)
-        this.triangleBatch.push({
-            x1: corners[3].xPos, y1: corners[3].yPos, color1: corners[3].color,
-            x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
-            x3: corners[2].xPos, y3: corners[2].yPos, color3: corners[2].color,
-            height: (corners[3].value + corners[1].value + corners[2].value) / 3
-        });
-        
-        this.triangleCount += 2;
+        const height2 = (corners[3].value + corners[1].value + corners[2].value) / 3;
+        if (isFinite(height2)) {
+            this.triangleBatch.push({
+                x1: corners[3].xPos, y1: corners[3].yPos, color1: corners[3].color,
+                x2: corners[1].xPos, y2: corners[1].yPos, color2: corners[1].color,
+                x3: corners[2].xPos, y3: corners[2].yPos, color3: corners[2].color,
+                height: height2
+            });
+            this.triangleCount++;
+        }
     }
 }
 

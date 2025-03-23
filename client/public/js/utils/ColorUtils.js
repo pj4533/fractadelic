@@ -2,28 +2,53 @@
 
 /**
  * Parses a hex color string into RGB components (private function)
+ * with enhanced error handling and validation
  * @param {string} hexColor - The hex color string (e.g. '#FF00CC')
  * @returns {Object} Object with r, g, b properties
  */
 const parseHexColor = (hexColor) => {
-    // Default to black if invalid
-    if (!hexColor || !hexColor.startsWith('#') || hexColor.length < 7) {
+    // Default to black for various invalid conditions
+    if (typeof hexColor !== 'string') {
+        console.warn('ColorUtils: Non-string color value received:', hexColor);
+        return { r: 0, g: 0, b: 0 };
+    }
+    
+    // Validate hex color format
+    if (!hexColor || !hexColor.startsWith('#')) {
+        console.warn('ColorUtils: Invalid hex color format (missing #):', hexColor);
+        return { r: 0, g: 0, b: 0 };
+    }
+    
+    // Ensure correct length
+    if (hexColor.length !== 7) { // Standard #RRGGBB format
+        console.warn('ColorUtils: Invalid hex color length:', hexColor);
+        return { r: 0, g: 0, b: 0 };
+    }
+    
+    // Validate hex characters
+    const validHexPattern = /^#[0-9A-Fa-f]{6}$/;
+    if (!validHexPattern.test(hexColor)) {
+        console.warn('ColorUtils: Invalid hex characters in color:', hexColor);
         return { r: 0, g: 0, b: 0 };
     }
     
     try {
+        // Parse RGB components with additional validation
         const r = parseInt(hexColor.slice(1, 3), 16);
         const g = parseInt(hexColor.slice(3, 5), 16);
         const b = parseInt(hexColor.slice(5, 7), 16);
         
-        // Check for NaN values
-        if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        // Validate color components
+        if (isNaN(r) || isNaN(g) || isNaN(b) || 
+            !isFinite(r) || !isFinite(g) || !isFinite(b) ||
+            r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) {
+            console.warn('ColorUtils: Invalid RGB values:', r, g, b);
             return { r: 0, g: 0, b: 0 };
         }
         
         return { r, g, b };
     } catch (error) {
-        console.warn('Error parsing hex color:', error);
+        console.warn('ColorUtils: Error parsing hex color:', error);
         return { r: 0, g: 0, b: 0 };
     }
 };

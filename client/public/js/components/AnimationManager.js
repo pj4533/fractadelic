@@ -18,20 +18,46 @@ class AnimationManager {
     
     // Animation loop that runs continuously
     animationLoop(timestamp) {
-        if (!this.lastFrameTime) this.lastFrameTime = timestamp;
-        const deltaTime = Math.min(timestamp - this.lastFrameTime, 33); // Cap at ~30fps to avoid large jumps
+        // Initialize lastFrameTime and handle first frame case
+        if (!this.lastFrameTime) {
+            this.lastFrameTime = timestamp;
+            this.animationFrameId = requestAnimationFrame(this.animationLoop.bind(this));
+            return; // Skip first frame to establish baseline
+        }
+        
+        // Calculate deltaTime with strict bounds to prevent large jumps
+        // This is critical for stable animation and avoids edge cases
+        let deltaTime = timestamp - this.lastFrameTime;
+        
+        // Handle browser tab inactive/background case
+        if (deltaTime > 100) {
+            console.warn(`Long frame time detected: ${deltaTime}ms, capping to 33ms`);
+            deltaTime = 33; // Cap to ~30fps equivalent
+        } else if (deltaTime <= 0) {
+            // Handle negative or zero delta (shouldn't happen but can with timer issues)
+            console.warn(`Invalid delta time: ${deltaTime}ms, using 16ms instead`);
+            deltaTime = 16; // Use ~60fps equivalent
+        }
+        
+        // Update last frame time marker
         this.lastFrameTime = timestamp;
         
+        // Track render performance
         const renderStart = performance.now();
         
         // Update dimensions if needed
         this.fractalLandscape.renderer.updateDimensions();
         
-        // Update animation state based on server sync mode
-        this.updateAnimationState(deltaTime, timestamp);
-        
-        // Render the scene
-        this.fractalLandscape.render();
+        try {
+            // Update animation state based on server sync mode
+            this.updateAnimationState(deltaTime, timestamp);
+            
+            // Render the scene
+            this.fractalLandscape.render();
+        } catch (err) {
+            console.error('Error in animation loop:', err);
+            // Continue animation even after error to avoid freezing
+        }
         
         // Update performance metrics
         this.fractalLandscape.performanceMonitor.setRenderTime(performance.now() - renderStart);

@@ -36,11 +36,13 @@ class ColorManager {
         let shiftedHeight = height;
         if (animate) {
             // Shift the height value based on the color shift
-            shiftedHeight = (height + this.colorShift) % 1;
+            // Use a more stable modulo implementation to prevent artifacts
+            shiftedHeight = ((height + this.colorShift) % 1 + 1) % 1;
         }
         
-        // Map to color index
-        const colorIndex = Math.min(palette.length - 1, Math.floor(shiftedHeight * palette.length));
+        // Map to color index with bounds checking to prevent index errors
+        const safeShiftedHeight = Math.max(0, Math.min(0.9999, shiftedHeight));
+        const colorIndex = Math.min(palette.length - 1, Math.floor(safeShiftedHeight * palette.length));
         return palette[colorIndex];
     }
 }

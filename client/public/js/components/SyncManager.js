@@ -91,7 +91,6 @@ class SyncManager {
         const newGlobalTime = globalTimeRef + this.syncData.globalTimeDelta * dt;
         
         // Smoothly adjust color shift
-        const newColorShift = colorManager.colorShift + this.syncData.colorShiftDelta * dt;
         // Keep color shift in 0-1 range
         colorManager.colorShift = updateCyclicValue(colorManager.colorShift, this.syncData.colorShiftDelta * dt);
         
