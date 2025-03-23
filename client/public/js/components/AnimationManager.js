@@ -1,4 +1,7 @@
 // AnimationManager class - Handles animation loop and timing
+import { updateCyclicValue } from '../utils/AnimationUtils.js';
+import { ANIMATION } from '../utils/constants.js';
+
 class AnimationManager {
     constructor(fractalLandscape) {
         this.fractalLandscape = fractalLandscape;
@@ -51,7 +54,7 @@ class AnimationManager {
         } else {
             // In local mode, use direct increments
             // Use smaller increment values for smoother transitions
-            this.globalTime += deltaTime * 0.0005; // Half the original rate for smoother motion
+            this.globalTime += deltaTime * ANIMATION.globalTimeRate;
         }
         
         // Update color shift for animation
@@ -59,7 +62,7 @@ class AnimationManager {
         
         // Auto-evolve less frequently and with smaller values
         if (timestamp - this.lastAutoEvolutionTime > 250) { // Even lower frequency
-            this.fractalLandscape.terrainGenerator.microEvolve(0.0003); // Smaller evolution amount
+            this.fractalLandscape.terrainGenerator.microEvolve(ANIMATION.evolutionRate);
             this.lastAutoEvolutionTime = timestamp;
         }
     }

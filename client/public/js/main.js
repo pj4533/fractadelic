@@ -2,18 +2,17 @@
 import { FractalLandscape } from './components/FractalLandscape.js';
 import UIManager from './components/UIManager.js';
 import ServerConnection from './components/ServerConnection.js';
+import { updateCanvasDimensions } from './utils/UIUtils.js';
+import { DEFAULT_OPTIONS } from './utils/constants.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Canvas setup
     const canvas = document.getElementById('fractalCanvas');
-    const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    updateCanvasDimensions(canvas);
     
     // Initialize fractal landscape with vibrant cosmic theme
     const fractal = new FractalLandscape(canvas, {
-        roughness: 0.5,
-        palette: 'cosmic'
+        palette: DEFAULT_OPTIONS.palette
     });
     
     // Create instance of ServerConnection first with a temp reference to fractal

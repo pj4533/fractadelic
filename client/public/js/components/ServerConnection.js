@@ -1,4 +1,6 @@
 // ServerConnection class - Handles WebSocket communication with server
+import { updateStatusElement } from '../utils/UIUtils.js';
+
 class ServerConnection {
     constructor(fractal, uiManager) {
         this.fractal = fractal;
@@ -29,7 +31,7 @@ class ServerConnection {
         // Connection established
         this.socket.on('connect', () => {
             console.log(`Connected to server [id: ${this.socket.id}]`);
-            this.serverStatusElement.textContent = 'Server status: Connected';
+            updateStatusElement(this.serverStatusElement, 'Server status: Connected');
             this.serverStatusElement.className = 'server-status connected';
             this.connected = true;
             
@@ -41,7 +43,7 @@ class ServerConnection {
         // Disconnect handler
         this.socket.on('disconnect', () => {
             console.log('Disconnected from server - reason:', this.socket.disconnected ? 'client disconnect' : 'server disconnect');
-            this.serverStatusElement.textContent = 'Server status: Disconnected';
+            updateStatusElement(this.serverStatusElement, 'Server status: Disconnected', false);
             this.serverStatusElement.className = 'server-status disconnected';
             this.connected = false;
         });
@@ -49,7 +51,7 @@ class ServerConnection {
         // Reconnection attempt
         this.socket.on('reconnecting', (attemptNumber) => {
             console.log(`Attempting to reconnect to server (attempt ${attemptNumber})`);
-            this.serverStatusElement.textContent = 'Server status: Reconnecting...';
+            updateStatusElement(this.serverStatusElement, 'Server status: Reconnecting...', false);
             this.serverStatusElement.className = 'server-status';
         });
         
@@ -57,7 +59,7 @@ class ServerConnection {
         this.socket.on('userCount', (count) => {
             console.log(`Received userCount update: ${count} users online`);
             this.activeUsers = count;
-            this.activeUsersElement.textContent = `${this.activeUsers} user${this.activeUsers !== 1 ? 's' : ''} online`;
+            updateStatusElement(this.activeUsersElement, `${this.activeUsers} user${this.activeUsers !== 1 ? 's' : ''} online`, false);
         });
         
         // Handle incoming state from server

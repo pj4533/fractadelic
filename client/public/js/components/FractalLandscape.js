@@ -4,6 +4,7 @@ import TerrainRenderer from './TerrainRenderer.js';
 import PerformanceMonitor from './PerformanceMonitor.js';
 import SyncManager from './SyncManager.js';
 import AnimationManager from './AnimationManager.js';
+import { DEFAULT_OPTIONS } from '../utils/constants.js';
 
 // Main FractalLandscape class - orchestrates all components
 class FractalLandscape {
@@ -12,10 +13,7 @@ class FractalLandscape {
         
         // Default options
         this.options = {
-            roughness: 0.5,
-            palette: 'cosmic',
-            seedPoints: [],
-            useServerSync: true,     // Whether to use server-synchronized animation
+            ...DEFAULT_OPTIONS,
             ...options
         };
         

@@ -1,4 +1,6 @@
 // TriangleRenderer class - Handles low-level triangle rendering operations
+import { averageColors } from '../utils/ColorUtils.js';
+
 class TriangleRenderer {
     constructor(ctx) {
         this.ctx = ctx;
@@ -14,40 +16,8 @@ class TriangleRenderer {
         this.ctx.closePath();
         
         try {
-            // Validate colors first - ensure valid hex format
-            if (!color1 || !color1.startsWith('#') || color1.length < 7) color1 = '#000000';
-            if (!color2 || !color2.startsWith('#') || color2.length < 7) color2 = '#000000';
-            if (!color3 || !color3.startsWith('#') || color3.length < 7) color3 = '#000000';
-            
             // Use a faster coloring approach - average the colors
-            // Parse colors in batch for better performance
-            const r1 = parseInt(color1.slice(1, 3), 16);
-            const g1 = parseInt(color1.slice(3, 5), 16);
-            const b1 = parseInt(color1.slice(5, 7), 16);
-            
-            const r2 = parseInt(color2.slice(1, 3), 16);
-            const g2 = parseInt(color2.slice(3, 5), 16);
-            const b2 = parseInt(color2.slice(5, 7), 16);
-            
-            const r3 = parseInt(color3.slice(1, 3), 16);
-            const g3 = parseInt(color3.slice(3, 5), 16);
-            const b3 = parseInt(color3.slice(5, 7), 16);
-            
-            // Check for NaN values
-            if (isNaN(r1) || isNaN(g1) || isNaN(b1) || 
-                isNaN(r2) || isNaN(g2) || isNaN(b2) || 
-                isNaN(r3) || isNaN(g3) || isNaN(b3)) {
-                throw new Error('Invalid color values');
-            }
-        
-            // Calculate strict average color with safety checks
-            // Apply stricter rounding to prevent potential NaN/invalid values
-            const avgR = Math.min(255, Math.max(0, Math.round((r1 + r2 + r3) / 3))); 
-            const avgG = Math.min(255, Math.max(0, Math.round((g1 + g2 + g3) / 3))); 
-            const avgB = Math.min(255, Math.max(0, Math.round((b1 + b2 + b3) / 3)));
-            
-            // Convert to hex color using template string for better performance
-            const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
+            const avgColor = averageColors(color1, color2, color3);
             
             // Fill with average color
             this.ctx.fillStyle = avgColor;

@@ -1,4 +1,7 @@
 // SyncManager class - Handles synchronization with server
+import { updateCyclicValue } from '../utils/AnimationUtils.js';
+import { weightedAverage } from '../utils/MathUtils.js';
+
 class SyncManager {
     constructor() {
         this.useServerSync = true;
@@ -59,7 +62,7 @@ class SyncManager {
                     // Target delta: how fast server time is advancing
                     const targetDelta = serverTimeDiff / timeSinceLastUpdate;
                     // Blend current delta with target (80% current, 20% target) for stability
-                    this.syncData.globalTimeDelta = 0.8 * this.syncData.globalTimeDelta + 0.2 * targetDelta;
+                    this.syncData.globalTimeDelta = weightedAverage(this.syncData.globalTimeDelta, targetDelta, 0.2);
                 }
             }
             
@@ -70,7 +73,7 @@ class SyncManager {
                 
                 if (serverColorDiff !== 0 && timeSinceLastUpdate > 0) {
                     const targetDelta = serverColorDiff / timeSinceLastUpdate;
-                    this.syncData.colorShiftDelta = 0.95 * this.syncData.colorShiftDelta + 0.05 * targetDelta;
+                    this.syncData.colorShiftDelta = weightedAverage(this.syncData.colorShiftDelta, targetDelta, 0.05);
                 }
             }
         }
@@ -90,13 +93,7 @@ class SyncManager {
         // Smoothly adjust color shift
         const newColorShift = colorManager.colorShift + this.syncData.colorShiftDelta * dt;
         // Keep color shift in 0-1 range
-        if (newColorShift > 1) {
-            colorManager.colorShift = newColorShift - 1;
-        } else if (newColorShift < 0) {
-            colorManager.colorShift = newColorShift + 1;
-        } else {
-            colorManager.colorShift = newColorShift;
-        }
+        colorManager.colorShift = updateCyclicValue(colorManager.colorShift, this.syncData.colorShiftDelta * dt);
         
         return { newGlobalTime };
     }

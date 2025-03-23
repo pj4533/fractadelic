@@ -1,5 +1,7 @@
 import TriangleRenderer from './TriangleRenderer.js';
 import QuadTreeSubdivider from './QuadTreeSubdivider.js';
+import { clamp, safeValue } from '../utils/MathUtils.js';
+import { updateCanvasDimensions } from '../utils/UIUtils.js';
 
 // TerrainRenderer class - Handles rendering of the landscape
 class TerrainRenderer {
@@ -26,7 +28,7 @@ class TerrainRenderer {
         // Calculate base skip factor - smaller values = more triangles
         // Add an upper bound to detail level to prevent issues when it exceeds 1.0
         // Make detail level scale have stronger effect on skip factor for faster performance changes
-        const clampedDetailLevel = Math.min(1.0, detailLevel);
+        const clampedDetailLevel = clamp(detailLevel, 0, 1.0);
         // Use a more dramatic scaling that creates visible differences in triangle size
         // Low detail = larger triangles, high detail = smaller triangles
         // Scale between 0.2 (high detail) to 2.0 (low detail) - wider range for better visibility 
@@ -36,13 +38,14 @@ class TerrainRenderer {
         // Apply safety checks but allow for larger cell sizes to create more visible differences
         // This allows the baseSkipFactor to have a more dramatic effect on triangle size
         const rawCellSize = Math.floor(baseSkipFactor * 4);
-        const cellSize = isNaN(rawCellSize) ? 2 : Math.max(2, Math.min(12, rawCellSize)); // Increased maximum
+        const cellSize = safeValue(rawCellSize, 2);
+        const limitedCellSize = clamp(cellSize, 2, 12); // Increased maximum
         
         // Use the QuadTreeSubdivider to create the triangle mesh
         const { triangleBatch, triangleCount, detailAreaCount } = 
             this.quadTreeSubdivider.subdivide(
                 this.terrainGenerator.gridSize, 
-                cellSize, 
+                limitedCellSize, 
                 baseSkipFactor, 
                 pixelWidth, 
                 pixelHeight, 
@@ -56,13 +59,9 @@ class TerrainRenderer {
         return { triangleCount, detailAreaCount };
     }
     
-    
     // Update canvas dimensions if needed
     updateDimensions() {
-        if (this.canvas.width !== this.canvas.clientWidth || 
-            this.canvas.height !== this.canvas.clientHeight) {
-            this.canvas.width = this.canvas.clientWidth;
-            this.canvas.height = this.canvas.clientHeight;
+        if (updateCanvasDimensions(this.canvas)) {
             this.width = this.canvas.width;
             this.height = this.canvas.height;
             return true;

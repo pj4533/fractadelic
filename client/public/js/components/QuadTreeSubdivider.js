@@ -1,4 +1,6 @@
 // QuadTreeSubdivider class - Handles adaptive quad-tree based terrain subdivision
+import { clamp, safeValue } from '../utils/MathUtils.js';
+
 class QuadTreeSubdivider {
     constructor(terrainGenerator, colorManager) {
         this.terrainGenerator = terrainGenerator;
@@ -46,14 +48,14 @@ class QuadTreeSubdivider {
     createSubdividedGrid(startX, startY, size, detailFactor, pixelWidth, pixelHeight, globalTime, options) {
         // Base case - create triangles for this cell
         // Validate detailFactor while maintaining a wider range for visible detail differences
-        // Allow larger values for low detail (bigger triangles) while preventing extremely small values
-        const safeDetailFactor = isNaN(detailFactor) || !isFinite(detailFactor) ? 1 : Math.min(5, Math.max(0.1, detailFactor));
+        const safeDetailFactor = safeValue(detailFactor, 1);
+        const limitedDetailFactor = clamp(safeDetailFactor, 0.1, 5);
         
         // Adaptive size threshold based on detail level:
         // - With high detail (low safeDetailFactor), subdivide more deeply
         // - With low detail (high safeDetailFactor), stop subdivision earlier
-        const minSubdivisionSize = Math.max(1, Math.floor(safeDetailFactor * 0.8));
-        if (size <= minSubdivisionSize || safeDetailFactor >= 4) { // Adaptive termination criteria
+        const minSubdivisionSize = Math.max(1, Math.floor(limitedDetailFactor * 0.8));
+        if (size <= minSubdivisionSize || limitedDetailFactor >= 4) { // Adaptive termination criteria
             this.createTrianglesForQuad(
                 startX, startY, size, 
                 pixelWidth, pixelHeight, 
@@ -82,10 +84,10 @@ class QuadTreeSubdivider {
         // Adjust thresholds based on detailFactor to make detail level more visually apparent
         // When detailFactor is high (low detail), we're more selective about what areas to subdivide
         // When detailFactor is low (high detail), we subdivide more aggressively
-        const detailScale = Math.min(1, Math.max(0, 1 - safeDetailFactor/3)); // 0 = low detail, 1 = high detail
+        const detailScale = clamp(1 - limitedDetailFactor/3, 0, 1); // 0 = low detail, 1 = high detail
         const isDetailArea = centerHeight > (0.4 - detailScale * 0.2) || // Adaptive peak threshold 
                           heightDiff > (0.07 - detailScale * 0.05) ||   // Adaptive variance threshold
-                          size > (4 + Math.floor(safeDetailFactor * 2)); // Adaptive size threshold
+                          size > (4 + Math.floor(limitedDetailFactor * 2)); // Adaptive size threshold
         
         if (isDetailArea) { // Always subdivide if it's a detail area
             this.detailAreaCount++;
@@ -95,7 +97,7 @@ class QuadTreeSubdivider {
             // This ensures the detail level properly propagates through the entire subdivision tree
             // For high detail (low safeDetailFactor), we preserve the detail level
             // For low detail (high safeDetailFactor), we might even increase it slightly to create bigger triangles
-            const newDetail = Math.max(safeDetailFactor, safeDetailFactor * 1.1);
+            const newDetail = Math.max(limitedDetailFactor, limitedDetailFactor * 1.1);
             
             // Recursively subdivide into 4 quads
             this.createSubdividedGrid(startX, startY, newSize, newDetail, 

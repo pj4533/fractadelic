@@ -1,4 +1,7 @@
 // ParameterDisplay class - Handles updating parameter displays and UI elements
+import { PALETTE_NAMES } from '../utils/constants.js';
+import { updateStatusElement } from '../utils/UIUtils.js';
+
 class ParameterDisplay {
     constructor() {
         // Initialize parameter display elements
@@ -20,17 +23,7 @@ class ParameterDisplay {
         }
         
         if (element) {
-            // Update value
-            element.textContent = value;
-            
-            // Add highlight effect
-            const parentItem = element.parentElement;
-            parentItem.classList.add('highlight');
-            
-            // Remove highlight after animation
-            setTimeout(() => {
-                parentItem.classList.remove('highlight');
-            }, 500);
+            updateStatusElement(element, value);
         }
     }
     
@@ -46,11 +39,10 @@ class ParameterDisplay {
                 switch(key) {
                     case 'p':
                         // Cycle through palettes
-                        const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];
-                        const currentIndex = palettes.indexOf(uiManager.controls.palette);
-                        const nextIndex = (currentIndex + 1) % palettes.length;
-                        uiManager.updatePalette(palettes[nextIndex]);
-                        uiManager.keyboardManager.showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
+                        const currentIndex = PALETTE_NAMES.indexOf(uiManager.controls.palette);
+                        const nextIndex = (currentIndex + 1) % PALETTE_NAMES.length;
+                        uiManager.updatePalette(PALETTE_NAMES[nextIndex]);
+                        uiManager.keyboardManager.showKeyFeedback('P', `Palette: ${PALETTE_NAMES[nextIndex]}`);
                         break;
                 }
             });

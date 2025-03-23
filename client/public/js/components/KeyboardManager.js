@@ -1,4 +1,7 @@
 // KeyboardManager class - Handles keyboard input and visual feedback
+import { PALETTE_NAMES } from '../utils/constants.js';
+import { showKeyFeedback } from '../utils/UIUtils.js';
+
 class KeyboardManager {
     constructor(uiManager) {
         this.uiManager = uiManager;
@@ -19,38 +22,17 @@ class KeyboardManager {
         switch (e.key) {
             // Palette changes
             case 'p': // Next palette
-                const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];
-                const currentIndex = palettes.indexOf(this.uiManager.controls.palette);
-                const nextIndex = (currentIndex + 1) % palettes.length;
-                this.uiManager.updatePalette(palettes[nextIndex]);
-                this.showKeyFeedback('P', `Palette: ${palettes[nextIndex]}`);
+                const currentIndex = PALETTE_NAMES.indexOf(this.uiManager.controls.palette);
+                const nextIndex = (currentIndex + 1) % PALETTE_NAMES.length;
+                this.uiManager.updatePalette(PALETTE_NAMES[nextIndex]);
+                this.showKeyFeedback('P', `Palette: ${PALETTE_NAMES[nextIndex]}`);
                 break;
         }
     }
     
     // Show visual feedback for keypresses
     showKeyFeedback(key, action) {
-        // Remove existing feedback if present
-        if (this.feedbackElement) {
-            document.body.removeChild(this.feedbackElement);
-        }
-        
-        // Create feedback element
-        const feedback = document.createElement('div');
-        feedback.className = 'key-feedback';
-        feedback.innerHTML = `<span class="key">${key}</span> ${action}`;
-        document.body.appendChild(feedback);
-        
-        // Store reference and set timeout to remove
-        this.feedbackElement = feedback;
-        setTimeout(() => {
-            if (feedback.parentNode) {
-                document.body.removeChild(feedback);
-                if (this.feedbackElement === feedback) {
-                    this.feedbackElement = null;
-                }
-            }
-        }, 1500);
+        this.feedbackElement = showKeyFeedback(key, action);
     }
 }
 

@@ -1,5 +1,7 @@
 import KeyboardManager from './KeyboardManager.js';
 import ParameterDisplay from './ParameterDisplay.js';
+import { ANIMATION } from '../utils/constants.js';
+import { updateCanvasDimensions } from '../utils/UIUtils.js';
 
 // UIManager class - Handles UI interaction and parameter management
 class UIManager {
@@ -16,7 +18,7 @@ class UIManager {
                 seed: 0
             },
             // Minimum time between updates (milliseconds)
-            throttleTime: 200
+            throttleTime: ANIMATION.throttleTime
         };
         
         // Initialize sub-components
@@ -38,10 +40,7 @@ class UIManager {
     setupEventHandlers() {
         // Add resize handler for canvas
         window.addEventListener('resize', () => {
-            const canvas = this.fractal.canvas;
-            const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            updateCanvasDimensions(this.fractal.canvas);
         });
     }
     

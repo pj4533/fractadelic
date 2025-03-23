@@ -1,4 +1,6 @@
 // Terrain Generation using Diamond-Square algorithm
+import { clamp, randomShift } from '../utils/MathUtils.js';
+
 class TerrainGenerator {
     constructor(roughness, seedPoints = []) {
         this.roughness = roughness;
@@ -58,18 +60,16 @@ class TerrainGenerator {
         for (let i = 0; i < 10; i++) {
             const index = Math.floor(Math.random() * this.terrainMap.length);
             const currentValue = this.terrainMap[index];
-            const shift = (Math.random() * 2 - 1) * rate;
-            this.terrainMap[index] = Math.max(0, Math.min(1, currentValue + shift));
+            this.terrainMap[index] = clamp(currentValue + randomShift(0, rate), 0, 1);
         }
     }
     
     // Evolve the landscape with dramatic effect
-    evolve(rate = 0.02) {  // Increased rate for more visible changes
+    evolve(rate = 0.02) {
         // Apply evolution to the map
         for (let i = 0; i < this.terrainMap.length; i++) {
             const currentValue = this.terrainMap[i];
-            const shift = (Math.random() * 2 - 1) * rate;
-            this.terrainMap[i] = Math.max(0, Math.min(1, currentValue + shift));
+            this.terrainMap[i] = clamp(currentValue + randomShift(0, rate), 0, 1);
         }
     }
     
@@ -112,8 +112,7 @@ class TerrainGenerator {
         ) / 4;
         
         // Add random displacement
-        const displacement = (Math.random() * 2 - 1) * roughness;
-        this.setValue(x, y, avg + displacement);
+        this.setValue(x, y, randomShift(avg, roughness));
     }
     
     // Square step of the algorithm
@@ -150,8 +149,7 @@ class TerrainGenerator {
         const avg = sum / count;
         
         // Add random displacement
-        const displacement = (Math.random() * 2 - 1) * roughness;
-        this.setValue(x, y, avg + displacement);
+        this.setValue(x, y, randomShift(avg, roughness));
     }
     
     // Helper to get value from terrain map
@@ -168,7 +166,7 @@ class TerrainGenerator {
             return;
         }
         // Ensure value is between 0 and 1
-        this.terrainMap[y * this.gridSize + x] = Math.max(0, Math.min(1, value));
+        this.terrainMap[y * this.gridSize + x] = clamp(value, 0, 1);
     }
 }
 
