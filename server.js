@@ -24,8 +24,27 @@ const state = {
     roughness: 0.5,
     palette: 'cosmic',
     seedPoints: [],
-    evolveSpeed: 5
+    evolveSpeed: 5,
+    // Animation state for synchronized visuals
+    globalTime: 0,
+    waveOffset: 0,
+    colorShift: 0
 };
+
+// Update animation state at regular intervals
+setInterval(() => {
+    // Update time-based animation parameters
+    state.globalTime += 0.033; // Roughly 33ms
+    state.waveOffset += 0.033 * 0.5; // Base wave movement 
+    state.colorShift = (state.colorShift + 0.033 * 0.0002) % 1;
+    
+    // Broadcast animation state to all clients every 100ms
+    io.emit('animationState', {
+        globalTime: state.globalTime,
+        waveOffset: state.waveOffset,
+        colorShift: state.colorShift
+    });
+}, 100); // Update 10 times per second for efficiency
 
 // Connected users
 let connectedUsers = 0;

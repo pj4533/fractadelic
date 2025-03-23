@@ -128,6 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fractal.evolve(0.01);
     });
     
+    // Handle animation state updates from server
+    socket.on('animationState', (animState) => {
+        // Update the fractal landscape with synchronized animation state
+        fractal.updateAnimationState(animState);
+    });
+    
     // Show visual feedback for keypresses
     function showKeyFeedback(key, action) {
         // Remove existing feedback if present

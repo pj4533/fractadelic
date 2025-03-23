@@ -19,6 +19,7 @@ class FractalLandscape {
             particleDensity: 0.5,    // 0.1 to 1.0 - controls number of particles
             glowIntensity: 0.5,      // 0.1 to 1.0 - controls glow effect
             waveIntensity: 0.5,      // 0.1 to 1.0 - controls wave-like movement
+            useServerSync: true,     // Whether to use server-synchronized animation
             ...options
         };
         
@@ -27,6 +28,7 @@ class FractalLandscape {
         this.lastFrameTime = 0;
         this.lastAutoEvolutionTime = 0;
         this.waveOffset = 0;
+        this.useServerSync = this.options.useServerSync;
         
         // Initialize components
         this.colorManager = new ColorManager(this.options.palette);
@@ -72,12 +74,15 @@ class FractalLandscape {
         const deltaTime = timestamp - this.lastFrameTime;
         this.lastFrameTime = timestamp;
         
-        // Update global time for color shifts
-        this.globalTime += deltaTime * 0.001;
-        this.colorManager.updateColorShift(deltaTime);
-
-        // Update wave effect
-        this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+        // Only update animation state locally if not using server sync
+        if (!this.useServerSync) {
+            // Update global time for color shifts
+            this.globalTime += deltaTime * 0.001;
+            this.colorManager.updateColorShift(deltaTime);
+            
+            // Update wave effect
+            this.waveOffset += deltaTime * 0.001 * this.options.waveIntensity;
+        }
         
         // Auto-evolve the landscape very subtly
         if (timestamp - this.lastAutoEvolutionTime > 100) { // Micro-evolve every 100ms
@@ -150,6 +155,25 @@ class FractalLandscape {
                 const value = 0.5 + Math.random() * 0.5;
                 this.rippleEffect.addRipple(x, y, value);
             }
+        }
+        
+        // Update server sync preference
+        if (options.useServerSync !== undefined) {
+            this.useServerSync = options.useServerSync;
+        }
+    }
+    
+    // Update animation state from server
+    updateAnimationState(animState) {
+        if (!this.useServerSync) return;
+        
+        // Update animation state from server
+        this.globalTime = animState.globalTime;
+        this.waveOffset = animState.waveOffset * this.options.waveIntensity;
+        
+        // Update color shift in the color manager
+        if (animState.colorShift !== undefined) {
+            this.colorManager.colorShift = animState.colorShift;
         }
     }
     
