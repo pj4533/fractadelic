@@ -1,14 +1,17 @@
 # Fractadelic
 
-A collaborative real-time fractal landscape generator where users can create and evolve beautiful terrain together.
+A collaborative real-time fractal landscape generator where users can create and evolve beautiful terrain together, with perfectly synchronized visual displays across all clients.
 
 ## Features
 
 - Generate fractal landscapes using the Diamond-Square algorithm
-- Collaborate with other users in real-time
-- Add seed points to shape the terrain
-- Choose from different color palettes
-- Watch landscapes evolve over time
+- Collaborate with other users in real-time with synchronized displays
+- Dynamic particle systems and ripple effects
+- Vibrant color palettes with smooth transitions
+- Interactive parameter controls for real-time adjustments
+- Wave, glow, and particle visual effects
+- Responsive design for all device sizes
+- Deterministic randomness for consistent experiences
 
 ## Getting Started
 
@@ -25,6 +28,7 @@ A collaborative real-time fractal landscape generator where users can create and
    npm start
    ```
 4. Open your browser to `http://localhost:3000`
+5. Open multiple browser windows to see the real-time collaboration
 
 ### Deployment Options
 
@@ -42,37 +46,54 @@ For GitHub Pages deployment, the app will run in offline mode without collaborat
 
 1. Run the app locally
 2. Copy the contents of the `client/public` folder to your GitHub Pages repository
-3. Update the client code to run in offline mode
+3. Use static-index.html and static-main.js which are configured for offline use
 
 ## Project Structure
 
 ```
 fractadelic/
-├── client/               # Client-side code
-│   ├── public/           # Static assets
-│   │   ├── index.html    # Main HTML
-│   │   ├── styles.css    # CSS styles
-│   │   └── js/           # JavaScript files
-│   │       ├── fractal.js # Fractal generation logic
-│   │       └── main.js   # Main client code
-│   └── package.json      # Client dependencies
-├── server.js             # Express.js server
-└── package.json          # Server dependencies
+├── client/                  # Client-side code
+│   ├── public/              # Static assets
+│   │   ├── index.html       # Main HTML
+│   │   ├── static-index.html # Static version HTML
+│   │   ├── css/             # CSS modules
+│   │   │   ├── base.css     # Core styles
+│   │   │   ├── parameters.css # Control panel styles
+│   │   │   ├── ...          # Other CSS modules
+│   │   │   └── index.css    # CSS entry point
+│   │   └── js/              # JavaScript files
+│   │       ├── components/  # Modular components
+│   │       │   ├── FractalLandscape.js # Main controller
+│   │       │   ├── TerrainGenerator.js # Terrain algorithm
+│   │       │   ├── ColorManager.js     # Color handling
+│   │       │   ├── ParticleSystem.js   # Particle effects
+│   │       │   └── RippleEffect.js     # Ripple animations
+│   │       ├── fractal.js   # Module exports
+│   │       ├── main.js      # Main client code
+│   │       └── static-main.js # Static version
+│   └── package.json         # Client dependencies
+├── server.js                # Express.js server with Socket.io
+└── package.json             # Server dependencies
 ```
 
 ## How to Use
 
-- **Color Palette**: Select different visual themes for your landscape
-- **Roughness**: Adjust to control how jagged the terrain appears
-- **Add Seed**: Click to place points of influence on the landscape
-- **Evolution Speed**: Control how quickly the landscape changes over time
+- **Palette (P key)**: Cycle through different visual themes
+- **Wave (Left/Right arrows)**: Control wave-like movement intensity
+- **Glow (Up/Down arrows)**: Adjust the glow effect intensity
+- **Particles (+/- keys)**: Change particle density
+- **Space**: Add ripple effects for visual interest
+- **Click/right-click parameters**: Increase/decrease values
 
 ## Technical Details
 
-- Uses HTML5 Canvas for rendering
-- Socket.io for real-time communication
-- Express.js for the server
+- Uses HTML5 Canvas for rendering with requestAnimationFrame
+- ES6 module system for component organization
+- Socket.io for real-time communication and state synchronization
+- Server-side animation state broadcast at 60fps
+- Deterministic pseudo-random number generation for visual consistency
 - Diamond-Square algorithm for fractal terrain generation
+- Responsive CSS with modular design
 
 ## License
 
