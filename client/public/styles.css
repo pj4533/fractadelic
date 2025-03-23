@@ -96,8 +96,8 @@ header .help-text {
     transition: all 0.3s ease;
     opacity: 0.9;
     animation: glow-subtle 3s infinite alternate;
-    max-width: 800px;
-    width: 90%; /* Use percentage width for better responsiveness */
+    max-width: 950px;
+    width: 95%; /* Use percentage width for better responsiveness */
     box-sizing: border-box; /* Include padding in width calculation */
     margin: 0 auto 20px auto; /* Added auto horizontal margins and bottom margin */
 }
@@ -107,8 +107,10 @@ header .help-text {
     flex-direction: row;
     justify-content: center;
     gap: 15px;
-    flex-wrap: wrap; /* Allow wrapping for narrow screens */
+    flex-wrap: nowrap; /* Prevent wrapping */
     width: 100%;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    padding-bottom: 5px; /* Add padding for scrollbar */
 }
 
 .parameter-overlay:hover {
@@ -141,14 +143,15 @@ header .help-text {
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
     box-shadow: 0 0 12px rgba(94, 96, 206, 0.2);
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     margin: 5px;
     cursor: pointer;
     height: 40px;
     overflow: hidden;
-    min-width: 160px;
-    max-width: 180px;
+    min-width: 200px;
+    max-width: 220px;
     box-sizing: border-box;
+    white-space: nowrap;
 }
 
 .param-item:hover {
@@ -171,8 +174,8 @@ header .help-text {
     font-size: 0.8rem;
     font-weight: bold;
     margin-right: 8px;
-    min-width: 30px;
-    max-width: 30px;
+    min-width: 40px;
+    max-width: 40px;
     text-align: center;
     display: flex;
     justify-content: center;
@@ -184,7 +187,7 @@ header .help-text {
 
 .arrow-left, .arrow-right, .arrow-up, .arrow-down {
     display: inline-block;
-    padding: 0 4px;
+    padding: 0 8px;
 }
 
 .arrow-left, .arrow-up {
@@ -199,7 +202,7 @@ header .help-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70px;
+    max-width: 90px;
     box-sizing: border-box;
 }
 
@@ -209,8 +212,8 @@ header .help-text {
     color: white;
     text-shadow: 0 0 10px rgba(100, 223, 223, 0.6);
     margin-left: 8px;
-    min-width: 40px;
-    max-width: 40px;
+    min-width: 60px;
+    max-width: 60px;
     text-align: right;
     background-color: rgba(100, 223, 223, 0.1);
     padding: 3px 5px;
@@ -305,28 +308,28 @@ header .help-text {
     }
     
     .param-item {
-        min-width: 140px;
-        max-width: 160px;
+        min-width: 180px;
+        max-width: 200px;
         padding: 7px 10px;
         height: 38px;
     }
     
     .param-label {
-        max-width: 55px;
+        max-width: 70px;
         font-size: 0.8rem;
     }
     
     .key-hint {
-        min-width: 28px;
-        max-width: 28px;
+        min-width: 36px;
+        max-width: 36px;
         margin-right: 6px;
         font-size: 0.75rem;
         height: 24px;
     }
     
     .param-value {
-        min-width: 38px;
-        max-width: 38px;
+        min-width: 48px;
+        max-width: 48px;
         font-size: 0.9rem;
     }
 }
@@ -371,18 +374,20 @@ header .help-text {
         width: 100%;
         padding: 10px;
         max-height: 300px;
-        overflow-y: auto;
+        overflow-y: visible;
     }
     
     .param-group {
-        flex-direction: column;
-        gap: 5px;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
     }
     
     .param-item {
-        width: 100%;
-        max-width: none;
-        margin: 3px 0;
+        min-width: 150px;
+        max-width: 180px;
+        margin: 3px 2px;
+        flex-shrink: 0;
     }
     
     .param-label {
