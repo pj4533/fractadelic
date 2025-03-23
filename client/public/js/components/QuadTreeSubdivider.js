@@ -45,9 +45,13 @@ class QuadTreeSubdivider {
     // Define a subdivision function to create more detailed areas
     createSubdividedGrid(startX, startY, size, detailFactor, pixelWidth, pixelHeight, globalTime, options) {
         // Base case - create triangles for this cell
-        // Add safety check to ensure detailFactor is a valid number and within a safe range
-        const safeDetailFactor = isNaN(detailFactor) ? 1 : Math.min(10, Math.max(0, detailFactor));
-        if (size <= 1 || safeDetailFactor >= 5) { // Use safe value to prevent calculation errors
+        // Add very strict safety check to ensure detailFactor is a valid number and within a very safe range
+        // Avoid any possible NaN/Infinity/extreme values that could cause glitches
+        const safeDetailFactor = isNaN(detailFactor) || !isFinite(detailFactor) ? 1 : Math.min(4, Math.max(0.1, detailFactor));
+        
+        // Use a stricter size check to prevent glitches with too-small grid cells
+        // Size should always be at least 1 to prevent micro-triangles that could cause visual artifacts
+        if (size <= 1 || safeDetailFactor >= 3) { // Lower threshold to prevent over-subdivision
             this.createTrianglesForQuad(
                 startX, startY, size, 
                 pixelWidth, pixelHeight, 
@@ -73,17 +77,18 @@ class QuadTreeSubdivider {
         const minHeight = Math.min(nwHeight, neHeight, seHeight, swHeight);
         const heightDiff = maxHeight - minHeight;
         
-        // More moderate thresholds to balance detail with the larger grid
-        const isDetailArea = centerHeight > 0.35 || // Moderate threshold for peaks 
-                          heightDiff > 0.03 ||   // Moderate threshold for variance
-                          size > 3;              // Force subdivision for larger cells
+        // More conservative thresholds to prevent over-subdivision and glitches
+        const isDetailArea = centerHeight > 0.4 || // Higher threshold for peaks to reduce subdivision 
+                          heightDiff > 0.07 ||   // Higher threshold for variance to prevent excessive detail
+                          size > 4;              // Only force subdivision for larger cells
         
         if (isDetailArea) { // Always subdivide if it's a detail area
             this.detailAreaCount++;
             // Subdivide further for detail areas with safety checks
             const newSize = halfSize;
-            // Ensure the new detail factor doesn't become invalid or NaN due to division
-            const newDetail = safeDetailFactor > 0 ? safeDetailFactor / 2 : 0.5;
+            // Use a more conservative fixed value approach than division to prevent detail cascade issues
+            // This ensures successive subdivisions don't cause instability with division chain
+            const newDetail = Math.min(safeDetailFactor, 2.0);  // Cap at 2.0 to avoid excessive subdivision
             
             // Recursively subdivide into 4 quads
             this.createSubdividedGrid(startX, startY, newSize, newDetail, 

@@ -27,10 +27,10 @@ class TerrainRenderer {
         // Add an upper bound to detail level to prevent issues when it exceeds 1.0
         // Make detail level scale have stronger effect on skip factor for faster performance changes
         const clampedDetailLevel = Math.min(1.0, detailLevel);
-        // Use more robust calculation that avoids edge cases with floor/ceiling functions
-        // This smooth curve prevents sudden jumps in values that could cause rendering issues
-        // Scale between 0.06 (high detail) to 1.6 (low detail) - wider range for better control
-        const baseSkipFactor = 0.06 + (clampedDetailLevel * 1.54);
+        // Use a more conservative calculation that balances detail with performance
+        // Avoid extreme values at both ends to prevent rendering artifacts
+        // Scale between 0.2 (high detail) to 1.2 (low detail) - narrower safer range
+        const baseSkipFactor = 0.2 + (clampedDetailLevel * 1.0);
         
         // With larger gridSize, we need slightly larger cell size for initial grid
         // Apply safety checks to ensure cellSize is a valid, reasonable integer

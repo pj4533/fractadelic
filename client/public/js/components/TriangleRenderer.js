@@ -40,11 +40,11 @@ class TriangleRenderer {
                 throw new Error('Invalid color values');
             }
         
-            // Calculate weighted average color - gives higher weight to brighter colors
-            // This creates more vibrant transitions than a simple average
-            const avgR = Math.floor((r1 + r2 + r3) / 3);
-            const avgG = Math.floor((g1 + g2 + g3) / 3);
-            const avgB = Math.floor((b1 + b2 + b3) / 3);
+            // Calculate strict average color with safety checks
+            // Apply stricter rounding to prevent potential NaN/invalid values
+            const avgR = Math.min(255, Math.max(0, Math.round((r1 + r2 + r3) / 3))); 
+            const avgG = Math.min(255, Math.max(0, Math.round((g1 + g2 + g3) / 3))); 
+            const avgB = Math.min(255, Math.max(0, Math.round((b1 + b2 + b3) / 3)));
             
             // Convert to hex color using template string for better performance
             const avgColor = `#${avgR.toString(16).padStart(2, '0')}${avgG.toString(16).padStart(2, '0')}${avgB.toString(16).padStart(2, '0')}`;
