@@ -45,8 +45,9 @@ class QuadTreeSubdivider {
     // Define a subdivision function to create more detailed areas
     createSubdividedGrid(startX, startY, size, detailFactor, pixelWidth, pixelHeight, globalTime, options) {
         // Base case - create triangles for this cell
-        // Use absolute minimum size to force maximum subdivision
-        if (size <= 1 || detailFactor >= 5) { // Increased threshold to allow even more subdivision
+        // Add safety check to ensure detailFactor is a valid number and within a safe range
+        const safeDetailFactor = isNaN(detailFactor) ? 1 : Math.min(10, Math.max(0, detailFactor));
+        if (size <= 1 || safeDetailFactor >= 5) { // Use safe value to prevent calculation errors
             this.createTrianglesForQuad(
                 startX, startY, size, 
                 pixelWidth, pixelHeight, 
@@ -79,9 +80,10 @@ class QuadTreeSubdivider {
         
         if (isDetailArea) { // Always subdivide if it's a detail area
             this.detailAreaCount++;
-            // Subdivide further for detail areas
+            // Subdivide further for detail areas with safety checks
             const newSize = halfSize;
-            const newDetail = detailFactor / 2;
+            // Ensure the new detail factor doesn't become invalid or NaN due to division
+            const newDetail = safeDetailFactor > 0 ? safeDetailFactor / 2 : 0.5;
             
             // Recursively subdivide into 4 quads
             this.createSubdividedGrid(startX, startY, newSize, newDetail, 

@@ -299,8 +299,10 @@ class PerformanceMonitor {
                     const smoothedTarget = (smoothingFactor * limitedTarget) + 
                                           ((1 - smoothingFactor) * previousAvg);
                                           
-                    // Update final target with safety bounds
-                    this.perfData.targetDetail = Math.min(1.0, Math.max(0.08, smoothedTarget));
+                    // Apply stronger safety bounds to target detail to avoid edge cases
+                    // Ensure valid number and stay well away from potential problem values
+                    const validTarget = isNaN(smoothedTarget) ? 0.5 : smoothedTarget;
+                    this.perfData.targetDetail = Math.min(0.95, Math.max(0.10, validTarget));
                     
                     // Update previous detail levels history for next smoothing
                     this.perfData.previousDetailLevels.push(this.perfData.targetDetail);
@@ -399,8 +401,11 @@ class PerformanceMonitor {
                 this.perfData.adaptiveDetail = newDetail;
             }
             
-            // Add safety bounds to prevent detail level from exceeding 1.0
-            this.perfData.adaptiveDetail = Math.min(1.0, Math.max(0.08, this.perfData.adaptiveDetail));
+            // Add strong safety bounds to prevent detail level issues
+            // Use more restrictive bounds (0.10-0.95) to stay well away from edge cases
+            // Also ensure we have a valid number (not NaN, Infinity, etc.)
+            const validDetail = isNaN(this.perfData.adaptiveDetail) ? 0.5 : this.perfData.adaptiveDetail;
+            this.perfData.adaptiveDetail = Math.min(0.95, Math.max(0.10, validDetail));
             
             // Add stability detection - if we're close to target, mark as stable
             if (Math.abs(detailDiff) < 0.02 && !this.perfData.optimalDetailFound) {
