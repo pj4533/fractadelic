@@ -1,5 +1,7 @@
 # Fractadelic
 
+![Fractadelic Fractal Landscape](fractadelic.png)
+
 A collaborative real-time fractal landscape generator where users can create and evolve beautiful terrain together, with perfectly synchronized visual displays across all clients.
 
 ## Features
