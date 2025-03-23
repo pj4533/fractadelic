@@ -1,5 +1,4 @@
 import TriangleRenderer from './TriangleRenderer.js';
-import ParticleRenderer from './ParticleRenderer.js';
 import QuadTreeSubdivider from './QuadTreeSubdivider.js';
 
 // TerrainRenderer class - Handles rendering of the landscape
@@ -12,21 +11,8 @@ class TerrainRenderer {
         this.width = canvas.width;
         this.height = canvas.height;
         
-        // Initialize grid offset for anti-flashing
-        this.gridOffset = {
-            lastWaveOffset: 0,
-            speedFactor: 0.05 // Slow down wave movement to reduce flashing
-        };
-        
         // Initialize sub-renderers
         this.triangleRenderer = new TriangleRenderer(this.ctx);
-        
-        // Ensure terrainGenerator is defined before passing to ParticleRenderer
-        if (!this.terrainGenerator) {
-            console.error("Error: terrainGenerator is undefined in TerrainRenderer constructor");
-        }
-        this.particleRenderer = new ParticleRenderer(this.ctx, this.terrainGenerator);
-        
         this.quadTreeSubdivider = new QuadTreeSubdivider(this.terrainGenerator, this.colorManager);
     }
     
@@ -35,16 +21,6 @@ class TerrainRenderer {
         // Calculate pixel size
         const pixelWidth = this.width / (this.terrainGenerator.gridSize - 1);
         const pixelHeight = this.height / (this.terrainGenerator.gridSize - 1);
-        
-        // Use anti-flashing technique: maintain stable positions between frames
-        // Calculate stable wave offset by dampening changes between frames
-        const currentWaveOffset = waveOffset;
-        const waveDelta = currentWaveOffset - this.gridOffset.lastWaveOffset;
-        
-        // Only move a percentage of the full wave amount (reduces oscillation)
-        const stableWaveOffset = this.gridOffset.lastWaveOffset + 
-            (waveDelta * this.gridOffset.speedFactor);
-        this.gridOffset.lastWaveOffset = stableWaveOffset;
         
         // Determine appropriate level for device
         // Calculate base skip factor - smaller values = more triangles
@@ -62,7 +38,7 @@ class TerrainRenderer {
                 pixelWidth, 
                 pixelHeight, 
                 globalTime, 
-                stableWaveOffset, 
+                0, // No wave offset 
                 options
             );
         
@@ -72,24 +48,6 @@ class TerrainRenderer {
         return { triangleCount, detailAreaCount };
     }
     
-    // Render particles
-    renderParticles(particleSystem) {
-        if (!particleSystem) {
-            console.error("Error: particleSystem is undefined in TerrainRenderer.renderParticles");
-            return;
-        }
-        
-        if (!this.particleRenderer) {
-            console.error("Error: this.particleRenderer is undefined in TerrainRenderer.renderParticles");
-            return;
-        }
-        
-        try {
-            this.particleRenderer.renderParticles(particleSystem, this.width, this.height);
-        } catch (error) {
-            console.error("Error rendering particles:", error);
-        }
-    }
     
     // Update canvas dimensions if needed
     updateDimensions() {

@@ -10,15 +10,9 @@ class UIManager {
         // Controls state
         this.controls = {
             palette: 'cosmic',
-            waveIntensity: 0.5,
-            glowIntensity: 0.5,
-            particleDensity: 0.5,
             // Throttle control to prevent spamming the server
             lastUpdate: {
                 palette: 0,
-                waveIntensity: 0,
-                glowIntensity: 0,
-                particleDensity: 0,
                 seed: 0
             },
             // Minimum time between updates (milliseconds)
@@ -70,65 +64,6 @@ class UIManager {
         this.serverConnection.addSeed({ x, y, value });
     }
     
-    // Update wave intensity
-    updateWaveIntensity(delta) {
-        const now = Date.now();
-        if (now - this.controls.lastUpdate.waveIntensity < this.controls.throttleTime) return;
-        
-        // Update with constraints
-        this.controls.waveIntensity = Math.max(0.1, Math.min(1.0, this.controls.waveIntensity + delta));
-        this.controls.lastUpdate.waveIntensity = now;
-        
-        // Update locally
-        this.fractal.updateOptions({ waveIntensity: this.controls.waveIntensity });
-        
-        // Update parameter display
-        this.parameterDisplay.updateDisplay('wave', this.controls.waveIntensity.toFixed(2));
-        
-        // Send to server
-        console.log(`Sending wave intensity update to server: ${this.controls.waveIntensity}`);
-        this.serverConnection.updateOption({ waveIntensity: this.controls.waveIntensity });
-    }
-    
-    // Update glow intensity
-    updateGlowIntensity(delta) {
-        const now = Date.now();
-        if (now - this.controls.lastUpdate.glowIntensity < this.controls.throttleTime) return;
-        
-        // Update with constraints
-        this.controls.glowIntensity = Math.max(0.1, Math.min(1.0, this.controls.glowIntensity + delta));
-        this.controls.lastUpdate.glowIntensity = now;
-        
-        // Update locally
-        this.fractal.updateOptions({ glowIntensity: this.controls.glowIntensity });
-        
-        // Update parameter display
-        this.parameterDisplay.updateDisplay('glow', this.controls.glowIntensity.toFixed(2));
-        
-        // Send to server
-        console.log(`Sending glow intensity update to server: ${this.controls.glowIntensity}`);
-        this.serverConnection.updateOption({ glowIntensity: this.controls.glowIntensity });
-    }
-    
-    // Update particle density
-    updateParticleDensity(delta) {
-        const now = Date.now();
-        if (now - this.controls.lastUpdate.particleDensity < this.controls.throttleTime) return;
-        
-        // Update with constraints
-        this.controls.particleDensity = Math.max(0.1, Math.min(1.0, this.controls.particleDensity + delta));
-        this.controls.lastUpdate.particleDensity = now;
-        
-        // Update locally
-        this.fractal.updateOptions({ particleDensity: this.controls.particleDensity });
-        
-        // Update parameter display
-        this.parameterDisplay.updateDisplay('particles', this.controls.particleDensity.toFixed(2));
-        
-        // Send to server
-        console.log(`Sending particle density update to server: ${this.controls.particleDensity}`);
-        this.serverConnection.updateOption({ particleDensity: this.controls.particleDensity });
-    }
     
     // Update palette
     updatePalette(paletteName) {
@@ -152,17 +87,11 @@ class UIManager {
     updateFromServerState(state) {
         // Extract and default missing values for backward compatibility
         const options = {
-            palette: state.palette || this.controls.palette,
-            waveIntensity: state.waveIntensity ?? this.controls.waveIntensity,
-            glowIntensity: state.glowIntensity ?? this.controls.glowIntensity,
-            particleDensity: state.particleDensity ?? this.controls.particleDensity
+            palette: state.palette || this.controls.palette
         };
         
         // Update local control state
         this.controls.palette = options.palette;
-        this.controls.waveIntensity = options.waveIntensity;
-        this.controls.glowIntensity = options.glowIntensity;
-        this.controls.particleDensity = options.particleDensity;
         
         // Update parameter display
         this.parameterDisplay.updateAllDisplays(this.controls);

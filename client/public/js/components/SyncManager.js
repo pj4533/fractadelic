@@ -25,12 +25,10 @@ class SyncManager {
             this.syncData = {
                 // Store last server values received
                 lastServerGlobalTime: globalTime,
-                lastServerWaveOffset: waveOffset,
                 lastServerColorShift: colorManager.colorShift,
                 
                 // Store deltas (rate of change from server)
                 globalTimeDelta: 0.016, // Default frames (60fps)
-                waveOffsetDelta: 0.008, // Default wave movement
                 colorShiftDelta: 0.0000032, // Default color shift
                 
                 // Last update timestamp
@@ -65,20 +63,6 @@ class SyncManager {
                 }
             }
             
-            // Calculate wave offset delta (rate of change)
-            if (animState.waveOffset !== undefined) {
-                const serverWaveOffsetValue = animState.waveOffset;
-                const serverWaveDiff = serverWaveOffsetValue - this.syncData.lastServerWaveOffset;
-                this.syncData.lastServerWaveOffset = serverWaveOffsetValue;
-                
-                if (serverWaveDiff !== 0 && timeSinceLastUpdate > 0) {
-                    // Target delta: how fast server wave is changing
-                    const targetDelta = serverWaveDiff / timeSinceLastUpdate;
-                    // Blend deltas very gradually (95% current, 5% target) for smooth transitions
-                    this.syncData.waveOffsetDelta = 0.95 * this.syncData.waveOffsetDelta + 0.05 * targetDelta;
-                }
-            }
-            
             // Calculate color shift delta (rate of change)
             if (animState.colorShift !== undefined) {
                 const serverColorDiff = animState.colorShift - this.syncData.lastServerColorShift;
@@ -94,7 +78,7 @@ class SyncManager {
     
     // Apply server-driven animation parameters in local animation loop
     applyServerSync(deltaTime, globalTimeRef, waveOffsetRef, colorManager) {
-        if (!this.useServerSync || !this.syncData) return { newGlobalTime: globalTimeRef, newWaveOffset: waveOffsetRef };
+        if (!this.useServerSync || !this.syncData) return { newGlobalTime: globalTimeRef };
         
         // Convert deltaTime to seconds
         const dt = deltaTime * 0.001;
@@ -102,7 +86,6 @@ class SyncManager {
         // Update values based on deltas (rates of change) rather than absolute values
         // This creates smooth transitions without jumps
         const newGlobalTime = globalTimeRef + this.syncData.globalTimeDelta * dt;
-        const newWaveOffset = waveOffsetRef + this.syncData.waveOffsetDelta * dt;
         
         // Smoothly adjust color shift
         const newColorShift = colorManager.colorShift + this.syncData.colorShiftDelta * dt;
@@ -115,7 +98,7 @@ class SyncManager {
             colorManager.colorShift = newColorShift;
         }
         
-        return { newGlobalTime, newWaveOffset };
+        return { newGlobalTime };
     }
     
     // Get the shared seed for deterministic randomness

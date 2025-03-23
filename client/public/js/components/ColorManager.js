@@ -29,11 +29,12 @@ class ColorManager {
         }
     }
     
+    // Update color shift for animation
     updateColorShift(deltaTime) {
         this.colorShift = (this.colorShift + deltaTime * 0.0002) % 1;
     }
     
-    // Get a color for a height value with shifting
+    // Get a color for a height value with shifting for animation
     getHeightColor(height, animate = true) {
         // Safety check for invalid height
         if (height === undefined || height === null || isNaN(height)) {
@@ -48,7 +49,7 @@ class ColorManager {
         // Apply color shifting for animation
         let shiftedHeight = height;
         if (animate) {
-            // Shift the height value based on the global time
+            // Shift the height value based on the color shift
             shiftedHeight = (height + this.colorShift) % 1;
         }
         
@@ -57,43 +58,6 @@ class ColorManager {
         return palette[colorIndex];
     }
     
-    // Get color with a pulsating glow effect
-    getGlowColor(color, x, y, globalTime, intensity = 0.5) {
-        // Safety check for invalid color
-        if (!color || typeof color !== 'string' || !color.startsWith('#') || color.length < 7) {
-            return '#000000'; // Return black as fallback
-        }
-        
-        try {
-            // Extract RGB components with error handling
-            const r = parseInt(color.substring(1, 3), 16);
-            const g = parseInt(color.substring(3, 5), 16);
-            const b = parseInt(color.substring(5, 7), 16);
-            
-            // Check if any RGB values are NaN (invalid hex color)
-            if (isNaN(r) || isNaN(g) || isNaN(b)) {
-                return '#000000'; // Return black for invalid colors
-            }
-            
-            // Calculate a pulsating factor based on position and time
-            // Scale the effect by the intensity parameter
-            const pulseFactor = (0.2 + intensity * 0.3) * 
-                            Math.sin(x / 30 + y / 30 + globalTime * (1 + intensity)) + 1;
-            
-            // Apply the pulse factor with intensity boost
-            const intensityMultiplier = 1 + (intensity * 0.5);
-            const rNew = Math.min(255, Math.round(r * pulseFactor * intensityMultiplier));
-            const gNew = Math.min(255, Math.round(g * pulseFactor * intensityMultiplier));
-            const bNew = Math.min(255, Math.round(b * pulseFactor * intensityMultiplier));
-            
-            // Convert back to hex with padding
-            return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
-        } catch (error) {
-            // Handle any unexpected errors during color processing
-            console.warn('Error processing color:', color, error);
-            return '#000000'; // Return black as fallback
-        }
-    }
 }
 
 export default ColorManager;

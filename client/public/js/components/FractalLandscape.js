@@ -1,6 +1,5 @@
 import ColorManager from './ColorManager.js';
 import TerrainGenerator from './TerrainGenerator.js';
-import ParticleSystem from './ParticleSystem.js';
 import TerrainRenderer from './TerrainRenderer.js';
 import PerformanceMonitor from './PerformanceMonitor.js';
 import SyncManager from './SyncManager.js';
@@ -16,9 +15,6 @@ class FractalLandscape {
             roughness: 0.5,
             palette: 'cosmic',
             seedPoints: [],
-            particleDensity: 0.5,    // 0.1 to 1.0 - controls number of particles
-            glowIntensity: 0.5,      // 0.1 to 1.0 - controls glow effect
-            waveIntensity: 0.5,      // 0.1 to 1.0 - controls wave-like movement
             useServerSync: true,     // Whether to use server-synchronized animation
             ...options
         };
@@ -28,11 +24,6 @@ class FractalLandscape {
         this.terrainGenerator = new TerrainGenerator(
             this.options.roughness, 
             this.options.seedPoints
-        );
-        this.particleSystem = new ParticleSystem(
-            this.terrainGenerator,
-            this.colorManager,
-            this.calculateParticleCount(this.options.particleDensity)
         );
         this.renderer = new TerrainRenderer(
             this.canvas,
@@ -47,33 +38,15 @@ class FractalLandscape {
         // Initialize the terrain
         this.terrainGenerator.initTerrain();
         
-        // Initialize particles
-        this.particleSystem.initializeParticles(
-            this.renderer.width,
-            this.renderer.height
-        );
-        
         // Start continuous animation loop
         this.animationManager.startAnimation();
     }
     
-    // Calculate particle count based on density parameter
-    calculateParticleCount(density) {
-        // Map density 0.1-1.0 to particle count 20-300
-        return Math.floor(20 + (density * 280));
-    }
     
-    // Add a seed point with ripple effect
+    // Add a seed point
     addSeedPoint(x, y, value) {
         // Add to terrain generator
         this.terrainGenerator.addSeedPoint(x, y, value);
-        
-        // Add a burst of particles
-        this.particleSystem.addParticleBurst(
-            x * this.renderer.width, 
-            y * this.renderer.height, 
-            value
-        );
     }
     
     // Update options with fast transition
@@ -86,23 +59,6 @@ class FractalLandscape {
             this.colorManager.setPalette(options.palette);
         }
         
-        // Update particle density
-        if (options.particleDensity !== undefined) {
-            this.particleSystem.maxParticles = this.calculateParticleCount(options.particleDensity);
-            
-            // Create particle explosion effect when increasing density
-            if (this.particleSystem.particles.length < this.particleSystem.maxParticles) {
-                for (let i = 0; i < 5; i++) {
-                    const x = Math.random();
-                    const y = Math.random();
-                    this.particleSystem.addParticleBurst(
-                        x * this.renderer.width, 
-                        y * this.renderer.height, 
-                        0.8
-                    );
-                }
-            }
-        }
         
         // Only regenerate terrain if roughness changed
         if (options.roughness !== undefined) {
@@ -128,11 +84,6 @@ class FractalLandscape {
             this.colorManager
         );
         
-        // Set shared seed for particle system
-        if (animState.sharedSeed !== undefined) {
-            this.particleSystem.setSharedSeed(animState.sharedSeed);
-        }
-        
         // Perform microEvolve if signaled by server
         if (animState.microEvolve) {
             this.terrainGenerator.microEvolve(0.0003);
@@ -143,12 +94,6 @@ class FractalLandscape {
     evolve(rate = 0.02) {  // Increased rate for more visible changes
         // Apply evolution to the map
         this.terrainGenerator.evolve(rate);
-        
-        // Renew particles to match new terrain
-        this.particleSystem.initializeParticles(
-            this.renderer.width,
-            this.renderer.height
-        );
     }
     
     // Render the terrain to the canvas
@@ -160,12 +105,12 @@ class FractalLandscape {
         const detailLevel = this.performanceMonitor.getDetailLevel();
         
         // Get current animation state
-        const { globalTime, waveOffset } = this.animationManager.getAnimationState();
+        const { globalTime } = this.animationManager.getAnimationState();
         
         // Render terrain
         const { triangleCount, detailAreaCount } = this.renderer.renderTerrain(
             globalTime,
-            waveOffset,
+            0, // No wave offset
             this.options, 
             detailLevel
         );
@@ -173,13 +118,6 @@ class FractalLandscape {
         // Update performance metrics
         this.performanceMonitor.updateMetrics(triangleCount, detailAreaCount);
         this.performanceMonitor.updateTriangleHistory(triangleCount);
-        
-        // Render particles - ensure particleSystem is defined
-        if (!this.particleSystem) {
-            console.error("Error: this.particleSystem is undefined in FractalLandscape.render");
-        } else {
-            this.renderer.renderParticles(this.particleSystem);
-        }
         
         // Draw debug info
         this.performanceMonitor.drawDebugInfo(this.renderer.ctx);

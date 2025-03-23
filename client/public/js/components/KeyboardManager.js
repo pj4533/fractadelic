@@ -17,37 +17,6 @@ class KeyboardManager {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
         switch (e.key) {
-            // Wave flow controls (Left/Right arrows)
-            case 'ArrowRight':
-                this.uiManager.updateWaveIntensity(0.05);
-                this.showKeyFeedback('→', 'Increase wave flow');
-                break;
-            case 'ArrowLeft':
-                this.uiManager.updateWaveIntensity(-0.05);
-                this.showKeyFeedback('←', 'Decrease wave flow');
-                break;
-                
-            // Glow intensity controls (Up/Down arrows)
-            case 'ArrowUp':
-                this.uiManager.updateGlowIntensity(0.05);
-                this.showKeyFeedback('↑', 'Increase glow intensity');
-                break;
-            case 'ArrowDown':
-                this.uiManager.updateGlowIntensity(-0.05);
-                this.showKeyFeedback('↓', 'Decrease glow intensity');
-                break;
-                
-            // Particle density controls (+/-)
-            case '+':
-            case '=': // = key is + without shift
-                this.uiManager.updateParticleDensity(0.05);
-                this.showKeyFeedback('+', 'Increase particle density');
-                break;
-            case '-':
-                this.uiManager.updateParticleDensity(-0.05);
-                this.showKeyFeedback('-', 'Decrease particle density');
-                break;
-                
             // Palette changes
             case 'p': // Next palette
                 const palettes = ['cosmic', 'neon', 'candy', 'sunset', 'lava', 'rainbow', 'earth', 'ocean', 'fire', 'forest'];

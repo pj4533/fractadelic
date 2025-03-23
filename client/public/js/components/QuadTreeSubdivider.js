@@ -115,27 +115,17 @@ class QuadTreeSubdivider {
             { x: startX, y: startY + size }
         ];
         
-        // Get wave effect for this cell - use stable offset to prevent flashing
-        const cellWaveEffect = options.waveIntensity * 
-            Math.sin((startX + startY) / 5 + stableWaveOffset * 3) * 2;
-        
         // Get corner data
         const corners = points.map(p => {
             // Get terrain value for this position
             const value = this.terrainGenerator.getValue(p.x, p.y);
-            const baseColor = this.colorManager.getHeightColor(value);
-            const glowIntensity = options.glowIntensity || 0.5;
-            const glowColor = this.colorManager.getGlowColor(
-                baseColor, p.x, p.y, globalTime, glowIntensity
-            );
+            const color = this.colorManager.getHeightColor(value);
             
-            // Apply wave effect - use stable offset to prevent flashing
-            const waveX = cellWaveEffect * Math.sin(p.y / 10 + stableWaveOffset);
-            const waveY = cellWaveEffect * Math.cos(p.x / 10 + stableWaveOffset);
-            const xPos = p.x * pixelWidth + waveX;
-            const yPos = p.y * pixelHeight + waveY;
+            // Direct mapping of coordinates to pixels without wave effect
+            const xPos = p.x * pixelWidth;
+            const yPos = p.y * pixelHeight;
             
-            return { xPos, yPos, value, color: glowColor };
+            return { xPos, yPos, value, color };
         });
         
         // Create triangles for this quad

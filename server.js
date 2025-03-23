@@ -27,7 +27,6 @@ const state = {
     evolveSpeed: 5,
     // Animation state for synchronized visuals
     globalTime: 0,
-    waveOffset: 0,
     colorShift: 0
 };
 
@@ -38,14 +37,12 @@ const SEED_UPDATE_INTERVAL = 1000;   // ms - random seed updates (1 second)
 
 // Consistent movement rates for predictable client interpolation
 const TIME_DELTA = 0.016;            // Global time increment per frame
-const WAVE_DELTA = 0.016 * 0.5;      // Wave offset increment per frame
 const COLOR_DELTA = 0.016 * 0.0002;  // Color shift increment per frame
 
 // Continuous internal animation state updates (faster than broadcast)
 setInterval(() => {
     // Update time-based animation parameters at constant rates
     state.globalTime += TIME_DELTA;
-    state.waveOffset += WAVE_DELTA;
     state.colorShift = (state.colorShift + COLOR_DELTA) % 1;
 }, INTERNAL_UPDATE_INTERVAL);
 
@@ -70,7 +67,6 @@ setInterval(() => {
     // Broadcast full animation state to all clients at regular intervals
     io.emit('animationState', {
         globalTime: state.globalTime,
-        waveOffset: state.waveOffset,
         colorShift: state.colorShift,
         sharedSeed: sharedSeed,
         // Flag this as a sync checkpoint
@@ -126,7 +122,6 @@ io.on('connection', (socket) => {
         const sharedSeed = Math.floor(state.globalTime * 1000) % 10000;
         socket.emit('animationState', {
             globalTime: state.globalTime,
-            waveOffset: state.waveOffset,
             colorShift: state.colorShift,
             sharedSeed: sharedSeed,
             isSyncCheckpoint: true
