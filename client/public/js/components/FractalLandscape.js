@@ -1,7 +1,6 @@
 import ColorManager from './ColorManager.js';
 import TerrainGenerator from './TerrainGenerator.js';
 import ParticleSystem from './ParticleSystem.js';
-import RippleEffect from './RippleEffect.js';
 
 // Main FractalLandscape class - orchestrates all components
 class FractalLandscape {
@@ -40,11 +39,6 @@ class FractalLandscape {
             this.terrainGenerator,
             this.colorManager,
             this.calculateParticleCount(this.options.particleDensity)
-        );
-        this.rippleEffect = new RippleEffect(
-            this.width,
-            this.height,
-            this.colorManager
         );
         
         // Initialize the terrain
@@ -95,8 +89,6 @@ class FractalLandscape {
         // Update particles
         this.particleSystem.updateParticles(deltaTime, this.width, this.height);
         
-        // Update ripples
-        this.rippleEffect.updateRipples(deltaTime);
         
         // Render
         this.render();
@@ -110,8 +102,6 @@ class FractalLandscape {
         // Add to terrain generator
         this.terrainGenerator.addSeedPoint(x, y, value);
         
-        // Add a ripple effect at the seed point
-        this.rippleEffect.addRipple(x, y, value);
         
         // Add a burst of particles
         this.particleSystem.addParticleBurst(
@@ -150,13 +140,6 @@ class FractalLandscape {
             this.terrainGenerator.setRoughness(options.roughness);
             this.terrainGenerator.initTerrain();
             
-            // Add a few ripples for visual interest
-            for (let i = 0; i < 3; i++) {
-                const x = Math.random();
-                const y = Math.random();
-                const value = 0.5 + Math.random() * 0.5;
-                this.rippleEffect.addRipple(x, y, value);
-            }
         }
         
         // Update server sync preference
@@ -203,22 +186,11 @@ class FractalLandscape {
         // Apply evolution to the map
         this.terrainGenerator.evolve(rate);
         
-        // Add random ripples for visual effect using shared randomness if available
-        for (let i = 0; i < 5; i++) {
-            const x = this.useServerSync ? this.getSharedRandom() : Math.random();
-            const y = this.useServerSync ? this.getSharedRandom() : Math.random();
-            const value = this.useServerSync ? this.getSharedRandom() : Math.random();
-            this.rippleEffect.addRipple(x, y, value);
-        }
         
         // Renew particles to match new terrain
         this.particleSystem.initializeParticles(this.width, this.height);
     }
     
-    // Add a ripple effect at the specified location
-    addRipple(x, y, value) {
-        this.rippleEffect.addRipple(x, y, value);
-    }
     
     // Render the terrain to the canvas
     render() {
@@ -241,67 +213,105 @@ class FractalLandscape {
         // Render terrain
         this.renderTerrain(pixelWidth, pixelHeight);
         
-        // Render ripples
-        this.renderRipples();
         
         // Render particles
         this.renderParticles();
     }
     
-    // Render terrain
+    // Render terrain using triangular mesh with gradient shading
     renderTerrain(pixelWidth, pixelHeight) {
-        // Draw the terrain with pulsating glow and wave effect
+        // Draw the terrain as a continuous triangular mesh with gradient shading
         for (let y = 0; y < this.terrainGenerator.gridSize - 1; y++) {
             for (let x = 0; x < this.terrainGenerator.gridSize - 1; x++) {
-                // Apply wave distortion
-                const waveEffect = this.options.waveIntensity * Math.sin(x / 5 + y / 5 + this.waveOffset * 3) * 10;
+                // Get the four corners of the current grid cell
+                const points = [
+                    { x, y },                 // Top-left
+                    { x: x + 1, y },          // Top-right
+                    { x: x + 1, y: y + 1 },   // Bottom-right
+                    { x, y: y + 1 }           // Bottom-left
+                ];
                 
-                // Get terrain value with potential wave distortion
-                const value = this.terrainGenerator.getValue(x, y);
+                // Calculate wave-affected positions and values for each corner
+                const corners = points.map(p => {
+                    const waveEffect = this.options.waveIntensity * Math.sin(p.x / 5 + p.y / 5 + this.waveOffset * 3) * 10;
+                    const value = this.terrainGenerator.getValue(p.x, p.y);
+                    const baseColor = this.colorManager.getHeightColor(value);
+                    const glowIntensity = this.options.glowIntensity || 0.5;
+                    const glowColor = this.colorManager.getGlowColor(
+                        baseColor, p.x, p.y, this.globalTime, glowIntensity
+                    );
+                    
+                    // Apply wave distortion to positions
+                    const xPos = p.x * pixelWidth + (waveEffect * Math.sin(p.y / 10 + this.waveOffset));
+                    const yPos = p.y * pixelHeight + (waveEffect * Math.cos(p.x / 10 + this.waveOffset));
+                    
+                    return {
+                        xPos,
+                        yPos,
+                        value,
+                        color: glowColor
+                    };
+                });
                 
-                // Get base colors
-                const baseColor = this.colorManager.getHeightColor(value);
-                
-                // Apply glow with intensity
-                const glowIntensity = this.options.glowIntensity || 0.5;
-                const glowColor = this.colorManager.getGlowColor(
-                    baseColor, 
-                    x, y, 
-                    this.globalTime, 
-                    glowIntensity
+                // Draw first triangle (top-left, top-right, bottom-left)
+                this.drawGradientTriangle(
+                    corners[0].xPos, corners[0].yPos, corners[0].color,
+                    corners[1].xPos, corners[1].yPos, corners[1].color,
+                    corners[3].xPos, corners[3].yPos, corners[3].color
                 );
                 
-                this.ctx.fillStyle = glowColor;
-                
-                // Draw rounded pixels for a smoother look
-                // Apply wave effect to position
-                const xPos = x * pixelWidth + (waveEffect * Math.sin(y / 10 + this.waveOffset));
-                const yPos = y * pixelHeight + (waveEffect * Math.cos(x / 10 + this.waveOffset));
-                
-                // Use rounded rectangles for a smoother appearance
-                this.ctx.beginPath();
-                this.ctx.roundRect(
-                    xPos, 
-                    yPos, 
-                    pixelWidth + 1, 
-                    pixelHeight + 1,
-                    1 + glowIntensity * 3 // Corner radius affected by glow
+                // Draw second triangle (bottom-left, top-right, bottom-right)
+                this.drawGradientTriangle(
+                    corners[3].xPos, corners[3].yPos, corners[3].color,
+                    corners[1].xPos, corners[1].yPos, corners[1].color,
+                    corners[2].xPos, corners[2].yPos, corners[2].color
                 );
-                this.ctx.fill();
             }
         }
     }
     
-    // Render ripples
-    renderRipples() {
-        for (const ripple of this.rippleEffect.ripples) {
-            this.ctx.strokeStyle = `${ripple.color}${Math.round(ripple.opacity * 255).toString(16).padStart(2,'0')}`;
-            this.ctx.lineWidth = ripple.thickness;
-            this.ctx.beginPath();
-            this.ctx.arc(ripple.x, ripple.y, ripple.currentRadius, 0, Math.PI * 2);
-            this.ctx.stroke();
-        }
+    // Draw a triangle with gradient colors at each vertex
+    drawGradientTriangle(x1, y1, color1, x2, y2, color2, x3, y3, color3) {
+        // Save context state
+        this.ctx.save();
+        
+        // Create a triangle path
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.lineTo(x3, y3);
+        this.ctx.closePath();
+        
+        // Create a gradient from the three points
+        // We'll use a simplified approach with the midpoint as gradient center
+        const centerX = (x1 + x2 + x3) / 3;
+        const centerY = (y1 + y2 + y3) / 3;
+        
+        // Calculate distances to create proportional gradient
+        const d1 = Math.hypot(x1 - centerX, y1 - centerY);
+        const d2 = Math.hypot(x2 - centerX, y2 - centerY);
+        const d3 = Math.hypot(x3 - centerX, y3 - centerY);
+        const maxDist = Math.max(d1, d2, d3) * 1.2; // Slightly larger for better blending
+        
+        // Create radial gradient
+        const gradient = this.ctx.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, maxDist
+        );
+        
+        // Add color stops based on normalized distances
+        gradient.addColorStop(d1 / maxDist, color1);
+        gradient.addColorStop(d2 / maxDist, color2);
+        gradient.addColorStop(d3 / maxDist, color3);
+        
+        // Fill with gradient
+        this.ctx.fillStyle = gradient;
+        this.ctx.fill();
+        
+        // Restore context
+        this.ctx.restore();
     }
+    
     
     // Render particles
     renderParticles() {
